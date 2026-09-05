@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrocerNet — Frontend Architecture & Technical Interview Master Encyclopedia</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
+
+  @page {
+    size: A4;
+    margin: 12mm 15mm;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1f2937;
+    background-color: #f8fafc;
+    line-height: 1.65;
+    font-size: 13.5px;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 50px;
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.06);
+  }
+
+  .cover-banner {
+    background: linear-gradient(135deg, #132419 0%, #1b3826 60%, #0d1a12 100%);
+    color: #ffffff;
+    padding: 50px 40px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 15px;
+  }
+
+  .badge-orange { background: rgba(249, 115, 22, 0.2); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.4); }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  h1.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 12px;
+    line-height: 1.15;
+  }
+
+  h1.title span { color: #f97316; }
+
+  .subtitle {
+    font-size: 15px;
+    color: #cbd5e1;
+    margin-bottom: 25px;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .meta-item h4 {
+    font-size: 10px;
+    color: #6ee7b7;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .meta-item p {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  h2.section-heading {
+    font-size: 21px;
+    font-weight: 800;
+    color: #132419;
+    border-bottom: 2.5px solid #10b981;
+    padding-bottom: 6px;
+    margin-top: 40px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h3.sub-heading {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1b3826;
+    margin-top: 24px;
+    margin-bottom: 10px;
+  }
+
+  p { margin-bottom: 12px; color: #374151; }
+  ul, ol { margin-left: 22px; margin-bottom: 14px; color: #374151; }
+  li { margin-bottom: 6px; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background-color: #f1f5f9;
+    color: #ea580c;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 14px 0;
+    border-left: 4px solid #10b981;
+  }
+
+  .ascii-box {
+    background: #f8fafc;
+    color: #1e293b;
+    border: 1.5px solid #cbd5e1;
+    border-left: 4px solid #f97316;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    margin: 14px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 12.5px;
+  }
+
+  th {
+    background: #132419;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid #132419;
+  }
+
+  td {
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    color: #374151;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) td { background-color: #f8fafc; }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .card-header {
+    font-weight: 700;
+    font-size: 14.5px;
+    color: #132419;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+  }
+
+  .term-def {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #059669;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+
+  .term-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #065f46;
+    margin-bottom: 4px;
+  }
+
+  .term-explain {
+    color: #374151;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .term-code-context {
+    font-size: 12px;
+    color: #4b5563;
+    background: #ffffff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .callout {
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+
+  .callout-tip { background: #ecfdf5; border-left: 4px solid #10b981; color: #065f46; }
+  .callout-warning { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+  .callout-bug { background: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; }
+
+  .qa-block {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .qa-q { font-weight: 700; color: #0f172a; font-size: 14px; margin-bottom: 4px; }
+  .qa-testing { font-size: 11.5px; color: #64748b; margin-bottom: 8px; font-style: italic; }
+  .qa-answer { color: #334155; font-size: 13px; margin-bottom: 8px; }
+  .qa-strong { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px; color: #166534; font-size: 12.5px; }
+
+  .print-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #f97316;
+    color: #ffffff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+    transition: transform 0.2s, background 0.2s;
+    z-index: 999;
+  }
+
+  .print-btn:hover {
+    background: #ea580c;
+    transform: scale(1.05);
+  }
+
+  @media print {
+    body { padding: 0; background: #ffffff; }
+    .container { max-width: 100%; padding: 0; box-shadow: none; }
+    .print-btn { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">📥 Print / Save as PDF</button>
+
+<div class="container">
+
+  <!-- COVER BANNER -->
+  <div class="cover-banner">
+    <div class="badge badge-orange">Master Interview & Architecture Encyclopedia</div>
+    <h1 class="title">GrocerNet <span>Client Architecture & Interview Handbook</span></h1>
+    <div class="subtitle">Complete Technical Encyclopedia, Comprehensive Key-Term Glossary, Line-by-Line Function Breakdowns, End-to-End Data Flows, and 100+ Senior Frontend Interview Questions</div>
+    
+    <div class="meta-grid">
+      <div class="meta-item">
+        <h4>Framework & Version</h4>
+        <p>React 19.2.8 + TypeScript 6.0 + Vite 8.2</p>
+      </div>
+      <div class="meta-item">
+        <h4>Styling & Routing</h4>
+        <p>Tailwind CSS v4.3.3 + React Router DOM v7.18.2</p>
+      </div>
+      <div class="meta-item">
+        <h4>Geospatial & Storage</h4>
+        <p>Leaflet 1.9.4 + LocalStorage Context</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: GLOSSARY OF EVERY KEY TERM -->
+  <h2 class="section-heading">1. Master Glossary of Every Key Technical Term</h2>
+  <p>In technical interviews, interviewers listen for your ability to explain complex concepts in simple, accurate English. Here is the comprehensive breakdown of every technical term used in this codebase:</p>
+
+  <div class="term-def">
+    <div class="term-name">Single Page Application (SPA) & Client-Side Routing</div>
+    <div class="term-explain"><strong>Definition:</strong> A web application that loads a single HTML page (<code>index.html</code>) and dynamically updates the DOM as the user navigates, without requesting a new HTML document from the server.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> React Router DOM v7 uses the browser's <code>HTML5 History API</code> (<code>pushState</code>, <code>popstate</code>) in <code>&lt;BrowserRouter&gt;</code> and <code>&lt;Link&gt;</code> tags. Navigating between <code>/products</code> and <code>/checkout</code> swaps React components instantaneously without a white flash or page reload.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">React 19 Concurrent Root & Reconciliation</div>
+    <div class="term-explain"><strong>Definition:</strong> <code>createRoot</code> initializes React's concurrent fiber reconciliation engine. When state changes, React constructs a lightweight JavaScript tree representation (Virtual DOM), compares it against the previous tree using a diffing algorithm (Reconciliation), and calculates the minimal set of native DOM operations needed.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>src/main.tsx</code> via <code>createRoot(document.getElementById('root')!).render(...)</code>.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Lazy State Initialization</div>
+    <div class="term-explain"><strong>Definition:</strong> Passing a callback function to <code>useState(() => initialValue)</code> instead of a raw value. React only executes this callback once during the initial mount, ignoring it during subsequent re-renders.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>CartContext.tsx</code>: <code>useState(() => JSON.parse(localStorage.getItem("app_cart") || "[]"))</code>. This prevents expensive synchronous disk I/O and JSON parsing from blocking the main thread on every render.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Derived State (Computed Values)</div>
+    <div class="term-explain"><strong>Definition:</strong> Values that can be calculated on the fly during the render phase from existing state or props, without creating redundant <code>useState</code> variables.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>CartContext.tsx</code>, <code>cartCount</code> and <code>cartTotal</code> are derived using <code>items.reduce(...)</code>. If we stored <code>cartCount</code> in a separate <code>useState</code>, any failure to update it alongside <code>items</code> would cause out-of-sync state bugs.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">URL Search Parameters as Single Source of Truth (URL State)</div>
+    <div class="term-explain"><strong>Definition:</strong> Storing filtering, sorting, and pagination parameters directly in the URL query string (e.g. <code>/products?category=bakery&sort=price_asc&page=2</code>) instead of local React component state.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>Products.tsx</code> and <code>SearchResults.tsx</code> via <code>useSearchParams()</code>. This makes filter views bookmarkable, shareable via link, and enables native browser Back/Forward navigation.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Event Propagation & Bubbling (e.stopPropagation)</div>
+    <div class="term-explain"><strong>Definition:</strong> In the DOM, events trigger on the target element and then "bubble" up through all ancestor parent elements in the DOM tree. <code>e.stopPropagation()</code> stops the event from traversing higher up the tree.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>ProductCard.tsx</code>. The parent card has an <code>onClick</code> navigating to <code>/products/:id</code>. The "Add to Cart" button inside calls <code>e.stopPropagation()</code> so clicking "Add" adds the product to cart without triggering unwanted navigation.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Leaflet Imperative Hook Bridging (MapUpdater & useMap)</div>
+    <div class="term-explain"><strong>Definition:</strong> Leaflet is an imperative JavaScript library (requiring direct method calls like <code>map.setView()</code>). React Leaflet wraps Leaflet in declarative components, but <code>&lt;MapContainer&gt;</code> only sets initial coordinates on mount. A hook bridge component accesses the raw Leaflet instance to imperatively update view coordinates when React props change.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>LiveMap.tsx</code> via the <code>MapUpdater</code> component calling <code>const map = useMap();</code> and executing <code>map.setView(center, map.getZoom())</code> inside <code>useEffect([center, map])</code>.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Debouncing</div>
+    <div class="term-explain"><strong>Definition:</strong> A programming pattern that delays the execution of a function until a specified period of inactivity has elapsed since the last time the event was triggered.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>SearchResults.tsx</code>, wrapping the search filter in a 200ms <code>setTimeout</code> with an effect cleanup function <code>return () => clearTimeout(timer)</code>. When the user types quickly, previous pending timers are canceled, preventing unnecessary filtering calculations on every keystroke.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">TypeScript Utility Types (Omit & Record)</div>
+    <div class="term-explain"><strong>Definition:</strong> Built-in TypeScript type transformers. <code>Omit&lt;Type, Keys&gt;</code> constructs a type by picking all properties from <code>Type</code> and then removing <code>Keys</code>. <code>Record&lt;Keys, Type&gt;</code> constructs an object type whose property keys are <code>Keys</code> and values are <code>Type</code>.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>types/index.ts</code>: <code>Order.shippingAddress: Omit&lt;Address, "_id" | "isDefault"&gt;</code> and in <code>assets.ts</code>: <code>statusColors: Record&lt;string, string&gt;</code>.</div>
+  </div>
+
+  <div class="term-def">
+    <div class="term-name">Seeded Pseudorandom Number Generator (PRNG)</div>
+    <div class="term-explain"><strong>Definition:</strong> A deterministic mathematical algorithm that generates a sequence of numbers that appear random but are completely reproducible given the same initial "seed" string.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>DummyReviewsSection.tsx</code> via <code>seededRandom(product._id)</code>. It generates identical, consistent review counts, reviewer names, and star distributions for a given product across all re-renders without needing a backend database.</div>
+  </div>
+
+  <!-- SECTION 2: ARCHITECTURE -->
+  <h2 class="section-heading">2. High-Level Architecture & Lifecycle Flow</h2>
+  <div class="ascii-box">
+Browser Window
+  ↓
+index.html (Loads Google Fonts & root div)
+  ↓
+src/main.tsx (createRoot Concurrent Initialization)
+  ↓
+BrowserRouter (React Router v7 History API Setup)
+  ↓
+CartProvider (Global CartContext + LocalStorage Sync)
+  ↓
+App.tsx (Mounts &lt;Toaster /&gt; with custom theme & Route Registry)
+  ├── Standalone Public Route: /login (Login.tsx)
+  └── AppLayout Shell (AppLayout.tsx)
+        ├── Banner.tsx (Marquee ticker with sessionStorage dismiss)
+        ├── Navbar.tsx (Sticky navigation, search input, cart badge, profile menu)
+        ├── CartSideBar.tsx (Global slide-over cart drawer)
+        ├── main.min-h-screen ──> &lt;Outlet /&gt; (Page Viewport)
+        │     ├── / (Home.tsx: Hero, Features, Categories, Deals, NewsLetter)
+        │     ├── /products (Products.tsx: FilterPanel, ProductGrid, Pagination)
+        │     ├── /products/:id (ProductPage.tsx: Details, Qty, Reviews, Related)
+        │     ├── /search (SearchResults.tsx: Debounced search grid)
+        │     ├── /deals (FlashDeals.tsx: Discounted products grid)
+        │     └── ProtectedRoute Subtree:
+        │           ├── /checkout (CheckOut.tsx: 3-Step Stepper + Order Summary)
+        │           ├── /orders (MyOrders.tsx: Tabbed order list)
+        │           ├── /orders/:id (OrderTracking.tsx: Leaflet LiveMap, OTP, Stepper)
+        │           └── /addresses (Address.tsx: Address Book CRUD)
+        └── Footer.tsx (Brand description, quick links, contact info, copyright)
+  </div>
+
+  <!-- SECTION 3: COMPLETE FUNCTION DIRECTORY -->
+  <h2 class="section-heading">3. Complete Directory of EVERY Single Custom Function</h2>
+  <table>
+    <tr><th>#</th><th>Function Name</th><th>File Location</th><th>Parameters</th><th>Return Type</th><th>State Mutated</th><th>Side Effects</th></tr>
+    <tr><td>1</td><td><code>CartProvider</code></td><td><code>CartContext.tsx</code></td><td><code>{ children: ReactNode }</code></td><td><code>JSX.Element</code></td><td><code>items</code>, <code>isCartOpen</code></td><td>Reads/writes <code>localStorage</code></td></tr>
+    <tr><td>2</td><td><code>addToCart</code></td><td><code>CartContext.tsx</code></td><td><code>product: Product, quantity = 1</code></td><td><code>void</code></td><td><code>items</code>, <code>isCartOpen</code></td><td>Persists to <code>localStorage</code></td></tr>
+    <tr><td>3</td><td><code>removeFromCart</code></td><td><code>CartContext.tsx</code></td><td><code>productId: string</code></td><td><code>void</code></td><td><code>items</code></td><td>Persists to <code>localStorage</code></td></tr>
+    <tr><td>4</td><td><code>updateQuantity</code></td><td><code>CartContext.tsx</code></td><td><code>productId: string, quantity: number</code></td><td><code>void</code></td><td><code>items</code></td><td>Persists to <code>localStorage</code></td></tr>
+    <tr><td>5</td><td><code>clearCart</code></td><td><code>CartContext.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>items</code>, <code>isCartOpen</code></td><td>Wipes <code>localStorage</code></td></tr>
+    <tr><td>6</td><td><code>useCart</code></td><td><code>CartContext.tsx</code></td><td><code>None</code></td><td><code>CartContextType</code></td><td>None</td><td>Throws error if called outside Provider</td></tr>
+    <tr><td>7</td><td><code>handleSearch</code></td><td><code>Navbar.tsx</code></td><td><code>e: React.SubmitEvent</code></td><td><code>void</code></td><td><code>searchQuery</code></td><td>Calls <code>navigate('/search?q=...')</code></td></tr>
+    <tr><td>8</td><td><code>handleLogout</code></td><td><code>Navbar.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>userMenuOpen</code></td><td>Calls <code>navigate('/')</code></td></tr>
+    <tr><td>9</td><td><code>dismissBanner</code></td><td><code>Banner.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>bannerVisible</code></td><td>Writes to <code>sessionStorage</code></td></tr>
+    <tr><td>10</td><td><code>handlePrev</code></td><td><code>Hero.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>activeTab</code></td><td>Steps hero carousel backwards</td></tr>
+    <tr><td>11</td><td><code>handleNext</code></td><td><code>Hero.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>activeTab</code></td><td>Steps hero carousel forwards</td></tr>
+    <tr><td>12</td><td><code>updateFilter</code></td><td><code>Products.tsx</code></td><td><code>key: string, value: string</code></td><td><code>void</code></td><td>None (URL state)</td><td>Calls <code>setSearchParams()</code>, resets page</td></tr>
+    <tr><td>13</td><td><code>clearFilter</code></td><td><code>Products.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td>None (URL state)</td><td>Calls <code>setSearchParams({})</code></td></tr>
+    <tr><td>14</td><td><code>fetchProducts</code></td><td><code>Products.tsx</code></td><td><code>None</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>products</code>, <code>loading</code></td><td>Filters <code>dummyProducts</code></td></tr>
+    <tr><td>15</td><td><code>handleMinus</code></td><td><code>ProductPage.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>localQuantity</code> or cart</td><td>Updates <code>CartContext</code> if in cart</td></tr>
+    <tr><td>16</td><td><code>handlePlus</code></td><td><code>ProductPage.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>localQuantity</code> or cart</td><td>Updates <code>CartContext</code> if in cart</td></tr>
+    <tr><td>17</td><td><code>handlePlaceOrder</code></td><td><code>CheckOut.tsx</code></td><td><code>None</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>loading</code></td><td>Navigates to <code>/orders?clearCart=true</code></td></tr>
+    <tr><td>18</td><td><code>fetchOrders</code></td><td><code>MyOrders.tsx</code></td><td><code>None</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>orders</code>, <code>loading</code></td><td>Filters <code>dummyDashboardOrdersData</code></td></tr>
+    <tr><td>19</td><td><code>resetForm</code></td><td><code>Address.tsx</code></td><td><code>None</code></td><td><code>void</code></td><td><code>form</code>, <code>showForm</code>, <code>editingId</code></td><td>Resets state & closes modal</td></tr>
+    <tr><td>20</td><td><code>handleSubmit</code> (Addr)</td><td><code>Address.tsx</code></td><td><code>e: React.FormEvent</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>addresses</code></td><td>Creates/updates address</td></tr>
+    <tr><td>21</td><td><code>onEditHandler</code></td><td><code>Address.tsx</code></td><td><code>add: Address</code></td><td><code>void</code></td><td><code>form</code>, <code>editingId</code>, <code>showForm</code></td><td>Opens modal for editing</td></tr>
+    <tr><td>22</td><td><code>handleDelete</code></td><td><code>AddressCard.tsx</code></td><td><code>id: string</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>addresses</code> (parent)</td><td>Removes address by ID</td></tr>
+    <tr><td>23</td><td><code>handleSubmit</code> (Auth)</td><td><code>Login.tsx</code></td><td><code>e: React.SubmitEvent</code></td><td><code>Promise&lt;void&gt;</code></td><td><code>loading</code></td><td>Calls <code>window.location.href = "/"</code></td></tr>
+    <tr><td>24</td><td><code>MapUpdater</code></td><td><code>LiveMap.tsx</code></td><td><code>{ center: [number, number] }</code></td><td><code>null</code></td><td>None</td><td>Calls <code>map.setView(center, zoom)</code></td></tr>
+    <tr><td>25</td><td><code>seededRandom</code></td><td><code>DummyReviewsSection.tsx</code></td><td><code>seed: string</code></td><td><code>() => number</code></td><td>None</td><td>Generates deterministic PRNG floats</td></tr>
+  </table>
+
+  <!-- SECTION 4: DATA FLOWS -->
+  <h2 class="section-heading">4. Complete End-to-End Data Flows</h2>
+
+  <h3 class="sub-heading">A. Add to Cart & Local Storage Persistence Pipeline</h3>
+  <div class="ascii-box">
+User clicks "+" on ProductCard / "Add to Cart" on ProductPage
+  ↓
+onClick handler invokes e.stopPropagation()
+  ↓
+addToCart(product, quantity = 1) is called
+  ↓
+CartContext executes setItems(prev => ...):
+  - Searches prev array for product._id
+  - If found: returns prev.map(...) with item.quantity + 1
+  - If not found: returns [...prev, { product, quantity }]
+  ↓
+CartContext sets isCartOpen = true
+  ↓
+Derived state (cartCount & cartTotal) recalculates via items.reduce()
+  ↓
+useEffect([items]) fires:
+  localStorage.setItem("app_cart", JSON.stringify(items))
+  ↓
+Navbar cart counter updates & CartSideBar slides open
+  </div>
+
+  <h3 class="sub-heading">B. URL Query Parameter Filtering Pipeline</h3>
+  <div class="ascii-box">
+User clicks Category / Enters Price / Changes Sort in FilterPanel
+  ↓
+updateFilter(key: string, value: string)
+  ↓
+const newParams = new URLSearchParams(searchParams);
+if (value) newParams.set(key, value);
+else newParams.delete(key);
+if (key !== "page") newParams.delete("page"); // resets pagination
+setSearchParams(newParams);
+  ↓
+Browser URL updates (e.g., /products?category=dairy-eggs&sort=price_asc)
+  ↓
+Products.tsx re-renders with new searchParams values
+  ↓
+useEffect([category, organic, sort, page, minPrice, maxPrice]) triggers:
+fetchProducts() executes -> updates local products state
+  ↓
+ProductGrid re-renders with filtered product cards
+  </div>
+
+  <h3 class="sub-heading">C. 3-Step Checkout Pipeline</h3>
+  <div class="ascii-box">
+CartSideBar "Proceed to Checkout" -> navigate('/checkout')
+  ↓
+Step 1 (Address): User selects saved address or creates new -> setStep("payment")
+  ↓
+Step 2 (Payment): User selects Card/Cash -> setStep("review")
+  ↓
+Step 3 (Review): User clicks "Place Order"
+  ↓
+handlePlaceOrder() triggers:
+  - Sets loading = true
+  - Simulates network delay (1.2s)
+  - Executes navigate('/orders?clearCart=true')
+  ↓
+MyOrders.tsx mounts:
+  - Reads searchParams.get("clearCart") === "true"
+  - Calls clearCart() from CartContext (clears items and localStorage)
+  - Calls setSearchParams({}) to clean up URL
+  - Loads dummy order list showing recent orders
+  </div>
+
+  <!-- SECTION 5: REAL BUGS -->
+  <h2 class="section-heading">5. Real Code Bugs, Edge Cases & Senior Engineering Fixes</h2>
+
+  <div class="callout callout-bug">
+    <strong>1. Typo in Environment Variable Name (CartSideBar.tsx Line 6)</strong><br>
+    <code>const currency = import.meta.env.VITR_CUURENCY_SYMBOL || "$";</code><br>
+    <em>Why it happens:</em> Typo in <code>VITR_CUURENCY_SYMBOL</code> instead of <code>VITE_CURRENCY_SYMBOL</code>.<br>
+    <em>Impact:</em> The fallback <code>"$"</code> masks the bug, but custom currency symbols configured in <code>.env</code> are completely ignored.<br>
+    <em>Fix:</em> Replace with <code>import.meta.env.VITE_CURRENCY_SYMBOL || "$"</code>.
+  </div>
+
+  <div class="callout callout-bug">
+    <strong>2. Space in URL Query Param Key (Products.tsx Line 157)</strong><br>
+    <code>updateFilter("page ", String(i + 1));</code><br>
+    <em>Why it happens:</em> Trailing space inside the string literal <code>"page "</code>.<br>
+    <em>Impact:</em> Sets <code>/products?page%20=2</code> in the URL bar. <code>searchParams.get("page")</code> looks for <code>"page"</code> without a space and returns null.<br>
+    <em>Fix:</em> Change to <code>updateFilter("page", String(i + 1))</code>.
+  </div>
+
+  <div class="callout callout-bug">
+    <strong>3. Placeholder ProtectedRoute Guard (ProtectedRoute.tsx Line 6)</strong><br>
+    <code>const ProtectedRoute = () => &lt;Outlet /&gt;;</code><br>
+    <em>Why it happens:</em> Implemented as a stub without auth token or session checking.<br>
+    <em>Impact:</em> Anyone can directly type <code>/checkout</code>, <code>/orders</code>, or <code>/addresses</code> in the URL and access private views without logging in.<br>
+    <em>Fix:</em> Check authentication state from an AuthContext or token storage; if unauthenticated, return <code>&lt;Navigate to="/login" replace /&gt;</code>.
+  </div>
+
+  <div class="callout callout-bug">
+    <strong>4. Hard Browser Reload on Login (Login.tsx Line 17)</strong><br>
+    <code>setTimeout(() => (window.location.href = "/"), 1000);</code><br>
+    <em>Why it happens:</em> Uses raw browser document location assignment instead of SPA router navigation.<br>
+    <em>Impact:</em> Destroys all in-memory React fiber trees, forces full asset re-downloads, and violates SPA architecture.<br>
+    <em>Fix:</em> Use <code>const navigate = useNavigate(); navigate("/");</code>.
+  </div>
+
+  <div class="callout callout-bug">
+    <strong>5. Inconsistent Delivery Fee Business Rules</strong><br>
+    <em>Why it happens:</em> <code>Banner.tsx</code> and <code>CartSideBar.tsx</code> declare free delivery on orders over $20 (fee $1.99). <code>CheckOut.tsx</code> sets free delivery on orders over $25 (fee $2.99).<br>
+    <em>Impact:</em> User sees "Free delivery over $20" in the cart, but is charged $2.99 in checkout if their total is $22.<br>
+    <em>Fix:</em> Centralize pricing and delivery thresholds into a single configuration constants file (e.g. <code>src/config/pricing.ts</code>).
+  </div>
+
+  <!-- SECTION 6: MASSIVE INTERVIEW BANK -->
+  <h2 class="section-heading">6. Massive Technical Interview Question & Answer Bank</h2>
+
+  <div class="qa-block">
+    <div class="qa-q">Q1: Why did you compute cartCount and cartTotal as derived state instead of storing them in useState?</div>
+    <div class="qa-testing">Testing: State normalization, eliminating state drift and unnecessary re-renders.</div>
+    <div class="qa-answer"><strong>Answer:</strong> Storing <code>cartCount</code> in a separate state requires manually synchronizing it every time <code>items</code> changes. If a developer updates <code>items</code> but forgets to update <code>cartCount</code>, the UI displays inconsistent data. Calculating them during render via <code>reduce()</code> guarantees they are always in sync with zero extra render passes.</div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q">Q2: Why did you use URL Search Parameters for catalog filtering instead of standard React useState?</div>
+    <div class="qa-testing">Testing: Architecture knowledge, UX best practices, SPA navigation principles.</div>
+    <div class="qa-answer"><strong>Answer:</strong> Storing filter criteria in the URL via <code>useSearchParams</code> gives three major advantages: 1) Users can share direct links to exact filtered lists; 2) Browser Back and Forward buttons work seamlessly; 3) Page refreshes preserve the active filter view without resetting.</div>
+    <div class="qa-strong"><strong>Strong Follow-up:</strong> It also enables search engine crawlers to index specific category/filter pages for SEO optimization and decouples the filter UI from the product grid presentation component.</div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q">Q3: Why is the MapUpdater component necessary inside LiveMap.tsx?</div>
+    <div class="qa-testing">Testing: Understanding imperative library lifecycles vs React declarative lifecycles.</div>
+    <div class="qa-answer"><strong>Answer:</strong> Leaflet is an imperative mapping library. React Leaflet's <code>&lt;MapContainer center={[lat, lng]} /&gt;</code> only sets the center coordinates once upon initial DOM creation; subsequent prop updates do not move the viewport. <code>MapUpdater</code> is rendered inside <code>&lt;MapContainer&gt;</code> where it can access Leaflet's <code>useMap()</code> hook and imperatively execute <code>map.setView(center, map.getZoom())</code> inside a <code>useEffect([center, map])</code>.</div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q">Q4: Why did you choose React Context over Redux Toolkit or Zustand for this application?</div>
+    <div class="qa-testing">Testing: Architectural trade-off analysis and avoiding over-engineering.</div>
+    <div class="qa-answer"><strong>Answer:</strong> In this client application, the shopping cart is the only state shared across disparate component branches (Navbar, Product Cards, Sidebar, Checkout). Context API with a custom <code>useCart</code> hook provides a clean, zero-dependency solution in under 100 lines of code. Adding Redux Toolkit would introduce unnecessary boilerplate. If the app expands to include user auth state, chat web sockets, and complex order management, migrating to Zustand or TanStack Query would be the logical next step.</div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q">Q5: How would you prevent a user from tampering with product prices in the checkout payload?</div>
+    <div class="qa-testing">Testing: Frontend vs Backend security boundaries.</div>
+    <div class="qa-answer"><strong>Answer:</strong> The frontend should never be trusted as the authority on prices, discounts, or delivery fees. When <code>handlePlaceOrder</code> runs, the client should only send an array of product IDs and quantities: <code>[{ productId: "123", quantity: 2 }]</code>. The backend server must query its own database, calculate line item prices, apply server-validated discount rules, compute tax, and generate the final charge amount.</div>
+  </div>
+
+  <!-- SECTION 7: ELEVATOR PITCHES -->
+  <h2 class="section-heading">7. "Tell Me About Your Project" Elevator Pitches</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <span>30-Second Elevator Pitch</span>
+      <span class="badge badge-green">Recruiter / HR Screen</span>
+    </div>
+    <p>"<strong>GrocerNet</strong> is a responsive Quick-Commerce grocery web app built with React 19, TypeScript, and Tailwind CSS v4. It features instant product catalog filtering with URL state management, an end-to-end shopping cart with local storage persistence, a 3-step checkout workflow, and interactive live order tracking with Leaflet OpenStreetMap integration."</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>2-Minute Technical Overview</span>
+      <span class="badge badge-orange">Technical Screening</span>
+    </div>
+    <p>"I built <strong>GrocerNet</strong> to solve core frontend engineering challenges in grocery delivery: high-frequency cart interactions, shareable catalog filtering, and dynamic geospatial tracking.</p>
+    <p>On the architecture side, I structured the app with <strong>React Router v7</strong> using layout routes and persistent drawer overlays. For state management, I separated local UI state from global cart state using <strong>React Context</strong> with lazy LocalStorage synchronization and derived computations. For catalog filtering, I leveraged <strong>URL state via <code>useSearchParams</code></strong> so all filter and sort parameters remain bookmarkable and shareable.</p>
+    <p>For order tracking, I integrated <strong>React-Leaflet</strong> with custom map controller hooks to smoothly update delivery partner positions on OpenStreetMap tiles."</p>
+  </div>
+
+</div>
+</body>
+</html>
