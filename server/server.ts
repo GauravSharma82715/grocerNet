@@ -21,10 +21,11 @@ app.get('/', (req: Request, res: Response) => {
     res.send('Server is Live!');
 });
 app.use('/api/auth', authRouter);
-app.use('/api/products', productRouter);
+app.use('api/products', productRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/orders', orderRouter);
 app.use("/api/inngest", serve({ client: inngest, functions }));
+
 //error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     console.error(error);

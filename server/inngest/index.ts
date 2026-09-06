@@ -219,8 +219,14 @@ const autoAssignRider = inngest.createFunction({
                 statusHistory: history as any,
             }
         })
+        return {
+            assigned: true,
+            riderId: availableRider.name,
+            orderId: orderId
+        }
 
     })
+    return result
 })
 
 // Create an empty array where we'll export future Inngest functions
