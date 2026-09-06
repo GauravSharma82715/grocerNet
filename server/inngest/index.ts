@@ -221,7 +221,7 @@ const autoAssignRider = inngest.createFunction({
         })
         return {
             assigned: true,
-            riderId: availableRider.name,
+            riderId: availableRider.id,
             orderId: orderId
         }
 
