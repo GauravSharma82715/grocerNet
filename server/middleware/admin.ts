@@ -13,7 +13,7 @@ const admin = async (req: Request, res: Response, next: NextFunction) => {
       if (!user) {
          return res.status(404).json({ message: "User not found" })
       }
-      const adminEmails = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split("").map((e) => e.trim().toLowerCase()) : [];
+      const adminEmails = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(",").map((e: string) => e.trim().toLowerCase()) : [];
       if (adminEmails.includes(user.email.toLowerCase())) {
          if (req.user) req.user.isAdmin = true;
          next();
