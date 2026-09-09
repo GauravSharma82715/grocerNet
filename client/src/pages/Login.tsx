@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import hero_Bg from "../assets/hero_bg.jpeg";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BikeIcon, Loader2Icon, Lock, Mail, UserIcon } from "lucide-react";
+import { useAuth } from "../context/authContext";
+import toast from "react-hot-toast";
 
 
 const Login = () => {
@@ -11,10 +13,36 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const { login, register, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
+
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => (window.location.href = "/"), 1000);
+    try {
+      let success = false;
+      if (isLoginState) {
+        success = await login(email, password);
+      } else {
+        success = await register(name, email, password);
+      }
+      if (success) {
+        navigate(from, { replace: true });
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error?.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

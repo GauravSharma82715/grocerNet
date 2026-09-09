@@ -69,15 +69,15 @@ const MyOrders = () => {
           <div className="space-y-4 max-w-4xl">
             {orders.map((order) => (
               <Link
-                key={order._id}
-                to={`/orders/${order._id}`}
+                key={order.id}
+                to={`/orders/${order.id}`}
                 className="block bg-white rounded-2xl p-5 border border-app-border shadow-xs hover:shadow-md hover:border-app-green/30 transition-all"
               >
                 {/* Order ID, Date & Status */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-sm font-semibold text-app-green">
-                      Order #{order._id.slice(-8).toUpperCase()}
+                      Order #{order.id.slice(-8).toUpperCase()}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1 text-app-text-light">
                       <CalendarIcon className="size-3.5" />

@@ -16,7 +16,7 @@ const ProductCard = ({ product }: Props) => {
   return (
     <div
       className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:border-emerald-200/80 hover:-translate-y-1 transition-all duration-300 group animate-fade-in cursor-pointer flex flex-col justify-between"
-      onClick={() => navigate(`/products/${product._id}`)}
+      onClick={() => navigate(`/products/${product.id}`)}
     >
       {/* Product Image Canvas */}
       <div className="relative aspect-square overflow-hidden bg-gray-50/70 p-5 flex items-center justify-center">

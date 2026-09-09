@@ -372,13 +372,13 @@
   <div class="term-def">
     <div class="term-name">TypeScript Utility Types (Omit & Record)</div>
     <div class="term-explain"><strong>Definition:</strong> Built-in TypeScript type transformers. <code>Omit&lt;Type, Keys&gt;</code> constructs a type by picking all properties from <code>Type</code> and then removing <code>Keys</code>. <code>Record&lt;Keys, Type&gt;</code> constructs an object type whose property keys are <code>Keys</code> and values are <code>Type</code>.</div>
-    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>types/index.ts</code>: <code>Order.shippingAddress: Omit&lt;Address, "_id" | "isDefault"&gt;</code> and in <code>assets.ts</code>: <code>statusColors: Record&lt;string, string&gt;</code>.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>types/index.ts</code>: <code>Order.shippingAddress: Omit&lt;Address, "id" | "isDefault"&gt;</code> and in <code>assets.ts</code>: <code>statusColors: Record&lt;string, string&gt;</code>.</div>
   </div>
 
   <div class="term-def">
     <div class="term-name">Seeded Pseudorandom Number Generator (PRNG)</div>
     <div class="term-explain"><strong>Definition:</strong> A deterministic mathematical algorithm that generates a sequence of numbers that appear random but are completely reproducible given the same initial "seed" string.</div>
-    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>DummyReviewsSection.tsx</code> via <code>seededRandom(product._id)</code>. It generates identical, consistent review counts, reviewer names, and star distributions for a given product across all re-renders without needing a backend database.</div>
+    <div class="term-code-context"><strong>Where used in GrocerNet:</strong> In <code>DummyReviewsSection.tsx</code> via <code>seededRandom(product.id)</code>. It generates identical, consistent review counts, reviewer names, and star distributions for a given product across all re-renders without needing a backend database.</div>
   </div>
 
   <!-- SECTION 2: ARCHITECTURE -->
@@ -457,7 +457,7 @@ onClick handler invokes e.stopPropagation()
 addToCart(product, quantity = 1) is called
   ↓
 CartContext executes setItems(prev => ...):
-  - Searches prev array for product._id
+  - Searches prev array for product.id
   - If found: returns prev.map(...) with item.quantity + 1
   - If not found: returns [...prev, { product, quantity }]
   ↓

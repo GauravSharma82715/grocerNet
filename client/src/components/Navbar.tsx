@@ -17,13 +17,11 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/authContext";
 
 const Navbar = () => {
-  const user: any = {
-    name: "Gaurav Sharma",
-    email: "gau@example.com",
-    isAdmin: true,
-  };
+  const { user, logout } = useAuth();
+
   const { cartCount, setIsCartOpen } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -36,6 +34,7 @@ const Navbar = () => {
     }
   };
   const handleLogout = () => {
+    logout()
     setUserMenuOpen(false);
     navigate("/");
   };
@@ -43,7 +42,7 @@ const Navbar = () => {
   return (
     <nav className="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-17 gap-6 lg:gap-10">
-        
+
         {/* Brand Logo */}
         <Link
           to="/"
@@ -58,7 +57,7 @@ const Navbar = () => {
         </Link>
 
         <div className="w-full flex items-center justify-end gap-4 lg:gap-8">
-          
+
           {/* Nav Links - Desktops */}
           <div className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-gray-600">
             <Link
@@ -101,7 +100,7 @@ const Navbar = () => {
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
-            
+
             {/* Cart Button */}
             <button
               className="relative p-2.5 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200/60 text-emerald-800 transition-all shadow-xs active:scale-95 cursor-pointer"
@@ -124,10 +123,10 @@ const Navbar = () => {
                   className="flex items-center gap-2 p-1.5 pr-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-200/80 transition-all cursor-pointer group"
                 >
                   <div className="size-7.5 rounded-xl bg-gradient-to-br from-emerald-600 to-green-700 text-white flex-center text-xs font-bold shadow-xs">
-                    {user.name.charAt(0).toUpperCase()}
+                    {(user.name || user.email || "U").charAt(0).toUpperCase()}
                   </div>
                   <span className="hidden sm:block text-xs font-semibold text-gray-700 group-hover:text-gray-900">
-                    {user.name.split(" ")[0]}
+                    {user.name ? user.name.split(" ")[0] : user.email?.split("@")[0]}
                   </span>
                   <ChevronDownIcon className="size-3 text-gray-400 group-hover:text-gray-600 transition-transform" />
                 </button>

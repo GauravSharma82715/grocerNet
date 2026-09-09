@@ -44,11 +44,11 @@ In technical interviews, interviewers listen for your ability to explain complex
 
 ### 9. TypeScript Utility Types (`Omit` & `Record`)
 * **Definition:** Built-in TypeScript type transformers. `Omit<Type, Keys>` constructs a type by picking all properties from `Type` and then removing `Keys`. `Record<Keys, Type>` constructs an object type whose property keys are `Keys` and values are `Type`.
-* **Where used in GrocerNet:** In `types/index.ts`: `Order.shippingAddress: Omit<Address, "_id" | "isDefault">` and in `assets.ts`: `statusColors: Record<string, string>`.
+* **Where used in GrocerNet:** In `types/index.ts`: `Order.shippingAddress: Omit<Address, "id" | "isDefault">` and in `assets.ts`: `statusColors: Record<string, string>`.
 
 ### 10. Seeded Pseudorandom Number Generator (PRNG)
 * **Definition:** A deterministic mathematical algorithm that generates a sequence of numbers that appear random but are completely reproducible given the same initial "seed" string.
-* **Where used in GrocerNet:** In `DummyReviewsSection.tsx` via `seededRandom(product._id)`. It generates identical, consistent review counts, reviewer names, and star distributions for a given product across all re-renders without needing a backend database.
+* **Where used in GrocerNet:** In `DummyReviewsSection.tsx` via `seededRandom(product.id)`. It generates identical, consistent review counts, reviewer names, and star distributions for a given product across all re-renders without needing a backend database.
 
 ---
 
@@ -141,7 +141,7 @@ onClick handler invokes e.stopPropagation()
 addToCart(product, quantity = 1) is called
   ↓
 CartContext executes setItems(prev => ...):
-  - Searches prev array for product._id
+  - Searches prev array for product.id
   - If found: returns prev.map(...) with item.quantity + 1
   - If not found: returns [...prev, { product, quantity }]
   ↓

@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react"
 import type { Address } from "../assets/types"
-import { dummyAddressData } from "../assets/assets"
 import { MapPinIcon, PlusIcon } from "lucide-react"
 import Loading from "../components/Loading"
 import AddressCard from "../components/AddressCard"
 import AddressForm from "../components/AddressForm"
+import { useAuth } from "../context/authContext"
+import api from "../config/api"
+import toast from "react-hot-toast"
 
 
 const Address = () => {
+
+  const { updateUser } = useAuth()
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -25,32 +29,60 @@ const Address = () => {
     setShowForm(false)
     setEditingId(null)
   }
+  const getLocation = (retries = 3): Promise<{ lat: number, lng: number } | null> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"))
+        return;
+      }
+      const attempt = () => {
+        navigator.geolocation.getCurrentPosition((position) => {
+          resolve({ lat: position.coords.latitude, lng: position.coords.longitude })
+
+        },
+          (error: any) => {
+            if (retries > 0) {
+              retries--;
+              setTimeout(attempt, 1000)
+            }
+            else {
+              reject(new Error(error.message || "Failed to get location after retries"))
+            }
+          }, {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 60000,
+        }
+        )
+      };
+      attempt();
+    })
+
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (editingId) {
-      setAddresses((prev) =>
-        prev.map((item) =>
-          item._id === editingId
-            ? { ...item, ...form }
-            : form.isDefault
-              ? { ...item, isDefault: false }
-              : item
-        )
-      )
-    } else {
-      const newAddress: Address = {
-        _id: Date.now().toString(),
-        ...form,
-        lat: 0,
-        lng: 0,
+    try {
+      const coords = await getLocation()
+      const payload = { ...form, ...coords }
+      if (editingId) {
+        const { data } = await api.put(`/api/addresses/${editingId}`, payload);
+        setAddresses(data.addresses)
+        updateUser({ addresses: data.addresses })
+        toast.success("Address updated...")
       }
-      setAddresses((prev) =>
-        form.isDefault
-          ? [...prev.map((item) => ({ ...item, isDefault: false })), newAddress]
-          : [...prev, newAddress]
-      )
+      else {
+        const { data } = await api.post('/api/addresses', payload);
+        setAddresses(data.addresses)
+        updateUser({ addresses: data.addresses })
+
+        toast.success("Address added...")
+
+      }
+      resetForm()
+    } catch (error) {
+
     }
-    resetForm()
   }
 
   const onEditHandler = (add: Address) => {
@@ -64,14 +96,17 @@ const Address = () => {
       isDefault: add.isDefault
 
     })
-    setEditingId(add._id)
+    setEditingId(add.id)
     setShowForm(true)
 
   }
 
   useEffect(() => {
-    setAddresses(dummyAddressData)
-    setTimeout(() => setLoading(false), 1000)
+    api.get('/api/addresses').then(({ data }) => {
+      setAddresses(data.addresses)
+    }).catch((error: any) => {
+      toast.error(error.response?.data?.message || error?.message)
+    }).finally(() => setLoading(false))
   }, [])
 
   return (
@@ -106,7 +141,7 @@ const Address = () => {
               (
                 <div className="space-y-4">
                   {addresses.map((add) => (
-                    <AddressCard key={add._id} addr={add} onEditHandler={onEditHandler} setAddresses={setAddresses} />
+                    <AddressCard key={add.id} addr={add} onEditHandler={onEditHandler} setAddresses={setAddresses} />
                   ))}
                 </div>
               )

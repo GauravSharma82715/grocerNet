@@ -56,7 +56,7 @@ const CartSideBar = () => {
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.product._id} className="flex gap-3 bg-app-cream/60 rounded-xl p-3">
+              <div key={item.product.id} className="flex gap-3 bg-app-cream/60 rounded-xl p-3">
                 <img src={item.product.image} alt={item.product.name} className="size-16 rounded-lg object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-semibold truncate">{item.product.name}</h4>
@@ -66,7 +66,7 @@ const CartSideBar = () => {
                     <div className="flex items-center gap-1.5">
                       <button
                         className="size-7 rounded-lg bg-white border border-app-border flex items-center justify-center"
-                        onClick={() => updateQuantity(item.product._id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                       >
                         <MinusIcon className="size-3" />
                       </button>
@@ -75,7 +75,7 @@ const CartSideBar = () => {
 
                       <button
                         className="size-7 rounded-lg bg-white border border-app-border flex items-center justify-center"
-                        onClick={() => updateQuantity(item.product._id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                       >
                         <PlusIcon className="size-3" />
                       </button>
@@ -85,7 +85,7 @@ const CartSideBar = () => {
                       <span className="text-sm font-semibold">
                         {currency}{(item.product.price * item.quantity).toFixed(2)}
                       </span>
-                      <button onClick={() => removeFromCart(item.product._id)} className="p-1 text-app-text-light hover:text-app-error transition-colors">
+                      <button onClick={() => removeFromCart(item.product.id)} className="p-1 text-app-text-light hover:text-app-error transition-colors">
                         <Trash2Icon className="size-4" />
                       </button>
                     </div>

@@ -18,7 +18,7 @@ const OrderTracking = () => {
 
   useEffect(() => {
     const list = dummyDashboardOrdersData as any[];
-    const foundOrder = list.find((o) => o._id === id);
+    const foundOrder = list.find((o) => o.id === id);
     if (foundOrder) {
       setOrder(foundOrder as Order);
       if (foundOrder.shippingAddress?.lat && foundOrder.shippingAddress?.lng) {
@@ -65,7 +65,7 @@ const OrderTracking = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-app-green">
-              Order #{order._id.slice(-8).toUpperCase()}
+              Order #{order.id.slice(-8).toUpperCase()}
             </h1>
             <p className="text-xs sm:text-sm text-app-text-light mt-1">
               Placed on{" "}
@@ -80,10 +80,10 @@ const OrderTracking = () => {
           </div>
           <span
             className={`px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full ${order.status === "Delivered"
-                ? "bg-green-100 text-green-700"
-                : order.status === "Cancelled"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-orange-100 text-app-orange"
+              ? "bg-green-100 text-green-700"
+              : order.status === "Cancelled"
+                ? "bg-red-100 text-red-700"
+                : "bg-orange-100 text-app-orange"
               }`}
           >
             {order.status}
