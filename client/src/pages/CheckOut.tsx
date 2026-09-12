@@ -21,7 +21,7 @@ import { useAuth } from "../context/authContext";
 
 const CheckOut = () => {
   const navigate = useNavigate();
-  const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+  const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
   const { items, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
 
@@ -51,6 +51,13 @@ const CheckOut = () => {
   ] as const;
 
   const handlePlaceOrder = async () => {
+    if (!address.address.trim() || !address.city.trim()) {
+      toast.error("Please provide a valid delivery address.");
+      setStep("address");
+      return;
+    }
+
+    setLoading(true);
     try {
       const orderData = {
         items: items.map((item) => ({
@@ -58,20 +65,81 @@ const CheckOut = () => {
           quantity: item.quantity,
         })),
         shippingAddress: address,
-        paymentMethod
+        paymentMethod,
+      };
 
-      }
-      const { data } = await api.post('/api/orders', orderData)
-      console.log(data)
-      if (data.url) {
-        window.location.href = data.url;
+      const { data } = await api.post("/api/orders", orderData);
+
+      // If online payment via Razorpay
+      if (data.razorpayOrder) {
+        if (!(window as any).Razorpay) {
+          toast.error("Razorpay SDK failed to load. Please check your connection.");
+          setLoading(false);
+          return;
+        }
+
+        const options = {
+          key: data.keyId,
+          amount: data.razorpayOrder.amount,
+          currency: data.razorpayOrder.currency,
+          name: "GrocerNet",
+          description: `Order #${data.order.id.slice(0, 8)} Payment`,
+          image: "/favicon.svg",
+          order_id: data.razorpayOrder.id,
+          handler: async (response: any) => {
+            try {
+              setLoading(true);
+              const verifyRes = await api.post("/api/orders/verify-razorpay", {
+                orderId: data.order.id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              if (verifyRes.data.success) {
+                clearCart();
+                toast.success("Payment successful! Order placed.");
+                navigate(`/orders/${data.order.id}`);
+              } else {
+                toast.error("Payment verification failed.");
+              }
+            } catch (err: any) {
+              toast.error(err?.response?.data?.message || "Payment verification failed.");
+            } finally {
+              setLoading(false);
+            }
+          },
+          prefill: {
+            name: user?.name || "",
+            email: user?.email || "",
+            contact: user?.phone || "",
+          },
+          theme: {
+            color: "#166534",
+          },
+          modal: {
+            ondismiss: () => {
+              setLoading(false);
+              toast("Payment window closed. You can retry checkout anytime.", { icon: "ℹ️" });
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", (response: any) => {
+          toast.error(response?.error?.description || "Payment failed. Please try again.");
+          setLoading(false);
+        });
+        rzp.open();
         return;
       }
-      clearCart()
+
+      // Cash on Delivery
+      clearCart();
       toast.success("Order placed successfully!");
-      navigate(`/orders/${data.order.id}`)
+      navigate(`/orders/${data.order.id}`);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message)
+      toast.error(error?.response?.data?.message || error.message);
     } finally {
       setLoading(false);
       scrollTo(0, 0);

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Order } from "../assets/types";
-import { dummyDashboardOrdersData } from "../assets/assets";
 import Loading from "../components/Loading";
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon } from "lucide-react";
+import { ArrowLeftIcon, MapPinIcon, PackageIcon, PhoneIcon } from "lucide-react";
 import OrderOTP from "../components/OrderTracking/OrderOTP";
 import LiveMap from "../components/OrderTracking/LiveMap";
 import OrderTimeLine from "../components/OrderTracking/OrderTimeLine";
+import api from "../config/api";
 
 const OrderTracking = () => {
   const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
@@ -17,19 +17,48 @@ const OrderTracking = () => {
   const [liveLocation, setLiveLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    const list = dummyDashboardOrdersData as any[];
-    const foundOrder = list.find((o) => o.id === id);
-    if (foundOrder) {
-      setOrder(foundOrder as Order);
-      if (foundOrder.shippingAddress?.lat && foundOrder.shippingAddress?.lng) {
-        setLiveLocation({
-          lat: foundOrder.shippingAddress.lat + 0.003,
-          lng: foundOrder.shippingAddress.lng + 0.003,
-        });
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    api
+      .get(`/api/orders/${id}`)
+      .then((res) => {
+        setOrder(res.data?.order || res.data || null);
+      })
+      .catch((err) => {
+        console.error("Failed to load order:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  //live location every 10 seconds
+  useEffect(() => {
+    if (!order || ["Delivered", "Cancelled", "Placed"].includes(order.status))
+      return;
+    const fetchLocation = async () => {
+      try {
+        const { data } = await api.get(`/api/orders/${id}/location`)
+        if (data.liveLocation?.lat && data.liveLocation?.lng && data.liveLocation.updatedAt) {
+          setLiveLocation({
+            lat: data.liveLocation.lat,
+            lng: data.liveLocation.lng,
+          })
+        }
+        if (data.status && data.status !== order.status) {
+          setOrder((prev) => prev ? { ...prev, status: data.status } : prev)
+        }
+      } catch {
+
+
       }
     }
-    setLoading(false);
-  }, [id, navigate]);
+    fetchLocation();
+    const interval = setInterval(fetchLocation, 10000);
+    return () => clearInterval(interval);
+  }, [id, order?.status])
+
 
   if (loading) return <Loading />;
 
@@ -50,6 +79,48 @@ const OrderTracking = () => {
     );
   }
 
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  const orderId = order.id ? order.id.slice(-8).toUpperCase() : id || "";
+  const calculatedSubtotal = orderItems.reduce((sum: number, item: any) => {
+    const isImgUrl =
+      typeof item.image === "string" &&
+      (item.image.startsWith("http") ||
+        item.image.startsWith("/") ||
+        item.image.startsWith("data:"));
+    const price =
+      item.price ??
+      (!isImgUrl && !isNaN(Number(item.image)) ? Number(item.image) : 0);
+    return sum + price * (item.quantity || 1);
+  }, 0);
+
+  const subtotal =
+    order.subtotal && order.subtotal > 0
+      ? Number(order.subtotal).toFixed(2)
+      : calculatedSubtotal.toFixed(2);
+  const deliveryFeeNum = Number(order.deliveryFee || 0);
+  const tax =
+    order.tax && order.tax > 0
+      ? Number(order.tax).toFixed(2)
+      : (calculatedSubtotal * 0.08).toFixed(2);
+  const total =
+    order.total && order.total > 0
+      ? Number(order.total).toFixed(2)
+      : (
+        calculatedSubtotal +
+        deliveryFeeNum +
+        Number(tax)
+      ).toFixed(2);
+
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    : "";
+
   return (
     <div className="min-h-screen bg-app-cream mb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -65,18 +136,13 @@ const OrderTracking = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-app-green">
-              Order #{order.id.slice(-8).toUpperCase()}
+              Order #{orderId}
             </h1>
-            <p className="text-xs sm:text-sm text-app-text-light mt-1">
-              Placed on{" "}
-              {new Date(order.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
+            {orderDate && (
+              <p className="text-xs sm:text-sm text-app-text-light mt-1">
+                Placed on {orderDate}
+              </p>
+            )}
           </div>
           <span
             className={`px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full ${order.status === "Delivered"
@@ -86,7 +152,7 @@ const OrderTracking = () => {
                 : "bg-orange-100 text-app-orange"
               }`}
           >
-            {order.status}
+            {order.status || "Placed"}
           </span>
         </div>
 
@@ -111,7 +177,7 @@ const OrderTracking = () => {
                   <div className="flex items-center gap-3">
                     <div className="size-11 rounded-full bg-app-green flex items-center justify-center shrink-0">
                       <span className="text-white font-semibold text-sm">
-                        {order.deliveryPartner.name.charAt(0).toUpperCase()}
+                        {order.deliveryPartner.name?.charAt(0)?.toUpperCase() || "D"}
                       </span>
                     </div>
                     <div>
@@ -119,7 +185,7 @@ const OrderTracking = () => {
                         {order.deliveryPartner.name}
                       </p>
                       <p className="text-xs text-app-text-light capitalize mt-0.5">
-                        {order.deliveryPartner.vehicleType} ✦ Delivery Partner
+                        {order.deliveryPartner.vehicleType || "Vehicle"} ✦ Delivery Partner
                       </p>
                     </div>
                   </div>
@@ -139,55 +205,80 @@ const OrderTracking = () => {
           {/* Orders details sidebar */}
           <div className="space-y-5">
             {/* Delivery Address */}
-            <div className="bg-white rounded-2xl p-5 border border-app-border shadow-xs">
-              <h3 className="flex items-center gap-2 font-semibold text-app-green text-sm mb-3">
-                <MapPinIcon className="size-4 text-app-green" />
-                Delivery Address
-              </h3>
-              <p className="text-sm font-medium text-app-green mb-1">
-                {order.shippingAddress.label}
-              </p>
-              <p className="text-xs sm:text-sm text-app-text-light leading-relaxed">
-                {order.shippingAddress.address}
-                <br />
-                {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
-                {order.shippingAddress.zip}
-              </p>
-            </div>
+            {order.shippingAddress && (
+              <div className="bg-white rounded-2xl p-5 border border-app-border shadow-xs">
+                <h3 className="flex items-center gap-2 font-semibold text-app-green text-sm mb-3">
+                  <MapPinIcon className="size-4 text-app-green" />
+                  Delivery Address
+                </h3>
+                <p className="text-sm font-medium text-app-green mb-1">
+                  {order.shippingAddress.label || "Delivery Location"}
+                </p>
+                <p className="text-xs sm:text-sm text-app-text-light leading-relaxed">
+                  {order.shippingAddress.address}
+                  <br />
+                  {order.shippingAddress.city ? `${order.shippingAddress.city}, ` : ""}
+                  {order.shippingAddress.state ? `${order.shippingAddress.state} ` : ""}
+                  {order.shippingAddress.zip || ""}
+                </p>
+              </div>
+            )}
 
             {/* Items & Price Summary */}
             <div className="bg-white rounded-2xl p-5 border border-app-border shadow-xs">
               <h3 className="font-semibold text-app-green text-sm mb-3">
-                Items ({order.items.length})
+                Items ({orderItems.length})
               </h3>
 
               {/* Items List */}
               <div className="space-y-3 divide-y divide-app-border/60">
-                {order.items.map((item, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-3 ${i > 0 ? "pt-3" : ""}`}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="size-11 rounded-xl object-contain bg-app-cream p-1 border border-app-border shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-app-green truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-app-text-light">
+                {orderItems.map((item: any, i: number) => {
+                  const isImgUrl =
+                    typeof item.image === "string" &&
+                    (item.image.startsWith("http") ||
+                      item.image.startsWith("/") ||
+                      item.image.startsWith("data:"));
+
+                  const itemPrice =
+                    item.price ??
+                    (!isImgUrl && !isNaN(Number(item.image))
+                      ? Number(item.image)
+                      : 0);
+                  const itemQuantity = Number(item.quantity || 1);
+                  const itemTotal = (itemPrice * itemQuantity).toFixed(2);
+
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-3 ${i > 0 ? "pt-3" : ""}`}
+                    >
+                      {isImgUrl ? (
+                        <img
+                          src={item.image}
+                          alt={item.name || "Item"}
+                          className="size-11 rounded-xl object-contain bg-app-cream p-1 border border-app-border shrink-0"
+                        />
+                      ) : (
+                        <div className="size-11 rounded-xl bg-app-cream p-1 border border-app-border flex items-center justify-center shrink-0 text-app-green">
+                          <PackageIcon className="size-5 text-app-green/60" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-app-green truncate">
+                          {item.name || "Product"}
+                        </p>
+                        <p className="text-xs text-app-text-light">
+                          {currency}
+                          {itemPrice} × {itemQuantity}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-app-green shrink-0">
                         {currency}
-                        {item.price} × {item.quantity}
-                      </p>
+                        {itemTotal}
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold text-app-green shrink-0">
-                      {currency}
-                      {(item.price * item.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Price Breakdown */}
@@ -196,16 +287,16 @@ const OrderTracking = () => {
                   <span>Subtotal</span>
                   <span className="font-medium text-app-green">
                     {currency}
-                    {order.subtotal.toFixed(2)}
+                    {subtotal}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-app-text-light">
                   <span>Delivery</span>
                   <span className="font-medium text-app-green">
-                    {order.deliveryFee === 0
+                    {deliveryFeeNum === 0
                       ? "Free"
-                      : `${currency}${order.deliveryFee.toFixed(2)}`}
+                      : `${currency}${deliveryFeeNum.toFixed(2)}`}
                   </span>
                 </div>
 
@@ -213,7 +304,7 @@ const OrderTracking = () => {
                   <span>Tax</span>
                   <span className="font-medium text-app-green">
                     {currency}
-                    {order.tax.toFixed(2)}
+                    {tax}
                   </span>
                 </div>
 
@@ -221,14 +312,14 @@ const OrderTracking = () => {
                   <span>Total</span>
                   <span>
                     {currency}
-                    {order.total.toFixed(2)}
+                    {total}
                   </span>
                 </div>
 
                 <div className="pt-2 text-xs text-app-text-light flex items-center justify-between">
                   <span>Payment</span>
                   <span className="uppercase font-medium text-app-green">
-                    {order.paymentMethod} ({order.isPaid ? "Paid" : "Pending"})
+                    {order.paymentMethod || "Card"} ({order.isPaid ? "Paid" : "Pending"})
                   </span>
                 </div>
               </div>

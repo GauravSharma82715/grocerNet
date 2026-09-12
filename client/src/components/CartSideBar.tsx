@@ -3,7 +3,7 @@ import { useCart } from "../context/CartContext";
 import { ArrowRightIcon, MinusIcon, PlusIcon, ShoppingBagIcon, Trash2Icon, XIcon } from "lucide-react";
 
 const CartSideBar = () => {
-  const currency = import.meta.env.VITR_CUURENCY_SYMBOL || "$";
+  const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
   const {
     items,
     updateQuantity,

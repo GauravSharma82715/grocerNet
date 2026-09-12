@@ -25,7 +25,8 @@
     "inngest": "^4.20.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.3.0",
-    "nodemailer": "^10.0.0"
+    "nodemailer": "^10.0.0",
+    "razorpay": "^2.9.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

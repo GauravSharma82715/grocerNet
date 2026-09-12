@@ -8,7 +8,7 @@ export const getAdminStats = async (req: Request, res: Response) => {
     const [totalOrders, totalUsers, totalProducts, outOfStock, totalPartners, recentOrders] = await Promise.all([
         prisma.order.count({ where: { NOT: [{ paymentMethod: "card", isPaid: false }] } }),
         prisma.user.count(),
-        prisma.product.count,
+        prisma.product.count(),
         prisma.product.count({ where: { stock: 0 } }),
         prisma.deliveryPartner.count(),
         prisma.order.findMany({
@@ -25,8 +25,42 @@ export const getAdminStats = async (req: Request, res: Response) => {
 
         })
 
-    ])
-    res.json({ totalOrders, totalUsers, totalProducts, outOfStock, totalPartners, recentOrders })
+    ]);
+
+    const productIds: string[] = [];
+    recentOrders.forEach((order) => {
+        if (Array.isArray(order.items)) {
+            order.items.forEach((item: any) => {
+                if (item.product) productIds.push(item.product);
+            });
+        }
+    });
+
+    const products = productIds.length > 0
+        ? await prisma.product.findMany({ where: { id: { in: productIds } } })
+        : [];
+    const productMap: Record<string, typeof products[0]> = {};
+    products.forEach((p) => { productMap[p.id] = p; });
+
+    const enrichedRecentOrders = recentOrders.map((order) => {
+        if (!Array.isArray(order.items)) return order;
+        const enrichedItems = order.items.map((item: any) => {
+            const prod = productMap[item.product];
+            return {
+                ...item,
+                price: item.price ?? (prod ? prod.price : (!isNaN(Number(item.image)) ? Number(item.image) : 0)),
+            };
+        });
+        const subtotal = enrichedItems.reduce((sum: number, it: any) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+        const total = Number(order.total) > 0 ? Number(order.total) : subtotal + (Number(order.deliveryFee) || 0) + (Number(order.tax) || 0);
+        return {
+            ...order,
+            items: enrichedItems,
+            total,
+        };
+    });
+
+    res.json({ totalOrders, totalUsers, totalProducts, outOfStock, totalPartners, recentOrders: enrichedRecentOrders });
 
 }
 //get delivery partner list for admin
@@ -60,7 +94,7 @@ export const updateDeliveryPartner = async (req: Request, res: Response) => {
     if (name) data.name = name;
     if (phone) data.phone = phone;
     if (vehicleType) data.vehicleType = vehicleType;
-    if (isActive) data.isActive = isActive;
+    if (isActive !== undefined) data.isActive = isActive;
     try {
         const partner = await prisma.deliveryPartner.update({
             where: { id: req.params.id as string },
@@ -82,7 +116,7 @@ export const assignDeliveryPartner = async (req: Request, res: Response) => {
     const partner = await prisma.deliveryPartner.findUnique({
         where: { id: partnerId }
     })
-    const otp = String(Math.floor(100000 * Math.random() * 900000));
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
     let status = order!.status;
     const history: any[] = Array.isArray(order!.statusHistory) ? order!.statusHistory : [];
     if (order!.status === "Placed" || order!.status === "Confirmed") {

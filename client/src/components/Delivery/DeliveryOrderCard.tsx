@@ -12,9 +12,27 @@ interface DeliveryOrderCardProps {
 
 export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setOtpModal, setCancelModal }: DeliveryOrderCardProps) {
 
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
-    const user = typeof order.user === "object" ? order.user : { name: "Customer", email: "", phone: "" };
+    const user = typeof order.user === "object" && order.user !== null ? order.user : { name: "Customer", email: "", phone: "" };
+
+    const shippingAddress: any = typeof order.shippingAddress === "string"
+        ? (JSON.parse(order.shippingAddress || "{}"))
+        : (order.shippingAddress || {});
+
+    const items: any[] = typeof order.items === "string"
+        ? (JSON.parse(order.items || "[]"))
+        : (Array.isArray(order.items) ? order.items : []);
+
+    const subtotalFromItems = items.reduce(
+        (sum: number, it: any) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1),
+        0
+    );
+    const calculatedTotal = Number(order.total) > 0
+        ? Number(order.total)
+        : (subtotalFromItems > 0 ? subtotalFromItems + (Number(order.deliveryFee) || 0) + (Number(order.tax) || 0) : Number(order.subtotal || 0));
+
+    const totalAmount = calculatedTotal.toFixed(2);
 
     return (
         <div key={order.id} className="bg-white rounded-2xl border border-app-border overflow-hidden">
@@ -26,7 +44,7 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
                         {order.status}
                     </span>
                 </div>
-                <span className="text-sm font-semibold text-zinc-900">{currency}{order.total.toFixed(2)}</span>
+                <span className="text-sm font-semibold text-zinc-900">{currency}{totalAmount}</span>
             </div>
 
             {/* Body */}
@@ -34,10 +52,10 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
                 {/* Customer */}
                 <div className="flex items-center gap-2 text-sm">
                     <div className="size-8 rounded-full bg-app-cream flex-center">
-                        <span className="text-xs font-semibold text-app-green">{user.name?.charAt(0)}</span>
+                        <span className="text-xs font-semibold text-app-green">{user.name?.charAt(0) || "C"}</span>
                     </div>
                     <div>
-                        <p className="font-medium text-zinc-900">{user.name}</p>
+                        <p className="font-medium text-zinc-900">{user.name || "Customer"}</p>
                         {user.phone && <p className="text-xs text-zinc-500 flex items-center gap-1"><PhoneIcon className="size-3" /> {user.phone}</p>}
                     </div>
                 </div>
@@ -45,11 +63,11 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
                 {/* Address */}
                 <div className="flex items-start gap-2 text-sm text-zinc-600">
                     <MapPinIcon className="size-4 text-app-green shrink-0 mt-0.5" />
-                    <p>{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
+                    <p>{shippingAddress.address || "N/A"}, {shippingAddress.city || ""}, {shippingAddress.state || ""} {shippingAddress.zip || ""}</p>
                 </div>
 
                 {/* Items count */}
-                <p className="text-xs text-zinc-500">{order.items.length} item{order.items.length > 1 ? "s" : ""} • {order.paymentMethod.toUpperCase()}</p>
+                <p className="text-xs text-zinc-500">{items.length} item{items.length !== 1 ? "s" : ""} • {(order.paymentMethod || "card").toUpperCase()}</p>
             </div>
 
             {/* Actions */}

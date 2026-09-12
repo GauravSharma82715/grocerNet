@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { PlusIcon, XIcon, TruckIcon, PhoneIcon, MailIcon } from "lucide-react";
 import type { DeliveryPartner } from "../../types";
 import Loading from "../../components/Loading";
-import { dummyDeliveryPartnerData } from "../../assets/assets";
+import api from "../../config/api";
+import toast from "react-hot-toast";
 
 export default function AdminDeliveryPartners() {
     const [partners, setPartners] = useState<DeliveryPartner[]>([]);
@@ -12,8 +13,14 @@ export default function AdminDeliveryPartners() {
     const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", vehicleType: "bike" });
 
     const fetchPartners = async () => {
-        setPartners(dummyDeliveryPartnerData as any)
-        setTimeout(() => setLoading(false), 1000)
+        try {
+            const { data } = await api.get("/api/admin/delivery-partners");
+            setPartners(data.partners || []);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Failed to load delivery partners");
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -22,11 +29,28 @@ export default function AdminDeliveryPartners() {
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-
+        setSaving(true);
+        try {
+            await api.post("/api/admin/delivery-partners", form);
+            toast.success("Partner onboarded successfully!");
+            setShowForm(false);
+            setForm({ name: "", email: "", password: "", phone: "", vehicleType: "bike" });
+            fetchPartners();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Failed to onboard partner");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const toggleActive = async (id: string, isActive: boolean) => {
-        console.log(id, isActive);
+        try {
+            await api.put(`/api/admin/delivery-partners/${id}`, { isActive: !isActive });
+            toast.success(isActive ? "Partner deactivated" : "Partner activated");
+            fetchPartners();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Failed to update partner status");
+        }
     };
 
     if (loading) return <Loading />;
@@ -35,7 +59,10 @@ export default function AdminDeliveryPartners() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold text-zinc-900">Delivery Partners</h1>
-                <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-app-green text-white text-sm font-semibold rounded-xl hover:bg-app-green-light transition-colors flex items-center gap-2">
+                <button
+                    onClick={() => setShowForm(true)}
+                    className="px-4 py-2 bg-app-green text-white text-sm font-semibold rounded-xl hover:bg-app-green-light transition-colors flex items-center gap-2 cursor-pointer"
+                >
                     <PlusIcon className="size-4" /> Add Partner
                 </button>
             </div>
@@ -53,12 +80,12 @@ export default function AdminDeliveryPartners() {
                         <div key={p.id} className="bg-white rounded-2xl border border-app-border p-5 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="size-10 rounded-full bg-app-green flex-center">
-                                        <span className="text-white font-semibold text-sm">{p.name.charAt(0)}</span>
+                                    <div className="size-10 rounded-full bg-app-green flex-center text-white font-semibold text-sm">
+                                        {p.name.charAt(0)}
                                     </div>
                                     <div>
                                         <p className="font-semibold text-zinc-900 text-sm">{p.name}</p>
-                                        <p className="text-xs text-zinc-500 capitalize">{p.vehicleType}</p>
+                                        <p className="text-xs text-zinc-500 capitalize">{p.vehicleType || "bike"}</p>
                                     </div>
                                 </div>
                                 <span className={`px-2.5 py-1 text-[10px] font-semibold rounded-full ${p.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
@@ -69,7 +96,14 @@ export default function AdminDeliveryPartners() {
                                 <p className="flex items-center gap-2"><MailIcon className="w-3.5 h-3.5 text-zinc-400" /> {p.email}</p>
                                 <p className="flex items-center gap-2"><PhoneIcon className="w-3.5 h-3.5 text-zinc-400" /> {p.phone}</p>
                             </div>
-                            <button onClick={() => toggleActive(p.id, p.isActive)} className={`w-full py-2 text-xs font-medium rounded-lg transition-colors ${p.isActive ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-green-50 text-green-600 hover:bg-green-100"}`}>
+                            <button
+                                onClick={() => toggleActive(p.id, p.isActive)}
+                                className={`w-full py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                    p.isActive
+                                        ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                        : "bg-green-50 text-green-600 hover:bg-green-100"
+                                }`}
+                            >
                                 {p.isActive ? "Deactivate" : "Activate"}
                             </button>
                         </div>
@@ -82,10 +116,12 @@ export default function AdminDeliveryPartners() {
                 <>
                     <div className="fixed inset-0 bg-app-cream/80 backdrop-blur z-50" onClick={() => setShowForm(false)} />
                     <div className="fixed inset-0 z-50 flex-center p-4">
-                        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 w-full max-w-lg animate-fade-in">
+                        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 w-full max-w-lg animate-fade-in shadow-xl">
                             <div className="flex items-center justify-between mb-5">
                                 <h2 className="text-lg font-semibold text-app-green">Onboard Delivery Partner</h2>
-                                <button type="button" onClick={() => setShowForm(false)} className="p-2 hover:bg-app-cream rounded-lg"><XIcon className="size-5" /></button>
+                                <button type="button" onClick={() => setShowForm(false)} className="p-2 hover:bg-app-cream rounded-lg cursor-pointer">
+                                    <XIcon className="size-5" />
+                                </button>
                             </div>
                             <div className="space-y-4">
                                 <div>
@@ -117,7 +153,7 @@ export default function AdminDeliveryPartners() {
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" disabled={saving} className="mt-6 w-full py-3 bg-app-green text-white font-semibold rounded-xl hover:bg-app-green-light transition-colors disabled:opacity-60">
+                            <button type="submit" disabled={saving} className="mt-6 w-full py-3 bg-app-green text-white font-semibold rounded-xl hover:bg-app-green-light transition-colors disabled:opacity-60 cursor-pointer">
                                 {saving ? "Creating..." : "Create Partner"}
                             </button>
                         </form>

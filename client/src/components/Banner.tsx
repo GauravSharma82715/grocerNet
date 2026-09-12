@@ -20,7 +20,7 @@ const Banner = () => {
               <div className="flex items-center gap-2">
                 <TruckIcon className="size-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-emerald-100">
-                  Free delivery on orders above $20
+                  Free delivery on orders above ₹499
                 </span>
               </div>
               <span className="text-emerald-500/50">•</span>
@@ -46,7 +46,7 @@ const Banner = () => {
               <div className="flex items-center gap-2">
                 <TruckIcon className="size-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-emerald-100">
-                  Free delivery on orders above $20
+                  Free delivery on orders above ₹499
                 </span>
               </div>
               <span className="text-emerald-500/50">•</span>

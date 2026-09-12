@@ -39,7 +39,7 @@ export const getMyDeliveries = async (req: Request, res: Response) => {
     const { status } = req.query;
     const where: any = { deliveryPartnerId: req.partner!.id }
     if (status === "active") {
-        where.status = { in: ["Assigned", "Packed", "Out for delivery"] }
+        where.status = { in: ["Assigned", "Packed", "Out for Delivery", "Out for delivery"] }
     }
     else if (status === "completed") {
         where.status = { in: ["Delivered", "Cancelled"] }
@@ -49,7 +49,41 @@ export const getMyDeliveries = async (req: Request, res: Response) => {
         include: { user: { select: { name: true, email: true, phone: true } } },
         orderBy: { createdAt: "desc" }
     })
-    res.json({ orders })
+
+    const productIds: string[] = [];
+    orders.forEach((order) => {
+        const items = typeof order.items === "string" ? JSON.parse(order.items || "[]") : (Array.isArray(order.items) ? order.items : []);
+        items.forEach((item: any) => {
+            if (item.product) productIds.push(item.product);
+        });
+    });
+
+    const products = productIds.length > 0
+        ? await prisma.product.findMany({ where: { id: { in: productIds } } })
+        : [];
+    const productMap: Record<string, typeof products[0]> = {};
+    products.forEach((p) => { productMap[p.id] = p; });
+
+    const enrichedOrders = orders.map((order) => {
+        const items = typeof order.items === "string" ? JSON.parse(order.items || "[]") : (Array.isArray(order.items) ? order.items : []);
+        const enrichedItems = items.map((item: any) => {
+            const prod = productMap[item.product];
+            return {
+                ...item,
+                price: item.price ?? (prod ? prod.price : (!isNaN(Number(item.image)) ? Number(item.image) : 0)),
+            };
+        });
+        const subtotal = enrichedItems.reduce((sum: number, it: any) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+        const total = Number(order.total) > 0 ? Number(order.total) : subtotal + (Number(order.deliveryFee) || 0) + (Number(order.tax) || 0);
+        return {
+            ...order,
+            items: enrichedItems,
+            total,
+            subtotal: Number(order.subtotal) > 0 ? Number(order.subtotal) : subtotal,
+        };
+    });
+
+    res.json({ orders: enrichedOrders })
 
 }
 
@@ -76,8 +110,8 @@ export const completeDelivery = async (req: Request, res: Response) => {
     if (!order || order.status === "Cancelled" || order.status === "Delivered") {
         return res.status(400).json({ message: "Invalid Request" })
     }
-    if (order.deliveryOtp != otp) {
-        return res.status(500).json({ message: "Invalid OTP" })
+    if (order.deliveryOtp !== otp && order.deliveryOtp?.slice(0, 6) !== otp) {
+        return res.status(400).json({ message: "Invalid OTP" })
     }
     const history = order.statusHistory as any[];
     history.push({ status: "Delivered", note: "Delivered by partner", timestamp: new Date() })
@@ -94,15 +128,18 @@ export const cancelDelivery = async (req: Request, res: Response) => {
     const order = await prisma.order.findFirst({
         where: { id: req.params.id as string, deliveryPartnerId: req.partner!.id }
     })
-    if (order!.status === "Deliverd") {
-        return res.status(400).json({ message: "Cnnot cancel a delivered order" });
+    if (!order) {
+        return res.status(404).json({ message: "Delivery not found" });
     }
-    const history = order!.statusHistory as any[];
+    if (order.status === "Delivered") {
+        return res.status(400).json({ message: "Cannot cancel a delivered order" });
+    }
+    const history = order.statusHistory as any[];
     history.push({
         status: "Cancelled", note: reason || "", timestamp: new Date()
     })
     const updatedOrder = await prisma.order.update({
-        where: { id: order!.id },
+        where: { id: order.id },
         data: { status: "Cancelled", statusHistory: history }
     })
 
@@ -113,8 +150,8 @@ export const cancelDelivery = async (req: Request, res: Response) => {
 
 export const upadteDeliveryStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
-    const allowedStatues = ["Pacekd", "Out for Delivery"];
-    if (!allowedStatues.includes(status)) {
+    const allowedStatuses = ["Packed", "Out for Delivery", "Out for delivery", "Assigned"];
+    if (!allowedStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status update" });
     }
     const order = await prisma.order.findFirst({
@@ -122,12 +159,15 @@ export const upadteDeliveryStatus = async (req: Request, res: Response) => {
             id: req.params.id as string, deliveryPartnerId: req.partner!.id
         }
     })
-    const history = order!.statusHistory as any[];
+    if (!order) {
+        return res.status(404).json({ message: "Delivery not found" });
+    }
+    const history = order.statusHistory as any[];
     history.push({
         status, note: `Status updated to ${status}`, timestamp: new Date()
     })
     const updatedOrder = await prisma.order.update({
-        where: { id: order!.id },
+        where: { id: order.id },
         data: { status, statusHistory: history }
     })
     res.json({ order: updatedOrder, message: "Status updated successfully" });
@@ -141,7 +181,7 @@ export const updateLocation = async (req: Request, res: Response) => {
         where: {
             id: req.params.id as string,
             deliveryPartnerId: req.partner!.id,
-            status: { in: ["Assigned", "Packed", "Out for Delivery"] }
+            status: { in: ["Assigned", "Packed", "Out for Delivery", "Out for delivery"] }
 
         }
     })

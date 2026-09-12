@@ -10,7 +10,6 @@ import {
   SearchIcon,
   ShieldIcon,
   ShoppingCartIcon,
-  User,
   UserIcon,
   XIcon,
 } from "lucide-react";

@@ -1,9 +1,10 @@
 import express from "express";
-import { createOrder, getAllOrders, getOrder, getOrderLocation, getUserOrder, updateOrderStatus } from "../controllers/orderControllers.js";
+import { createOrder, getAllOrders, getOrder, getOrderLocation, getUserOrder, updateOrderStatus, verifyRazorpayPayment } from "../controllers/orderControllers.js";
 import auth from "../middleware/auth.js";
 import admin from "../middleware/admin.js";
 const orderRouter = express.Router();
 orderRouter.post('/', auth, createOrder);
+orderRouter.post('/verify-razorpay', auth, verifyRazorpayPayment);
 orderRouter.get('/', auth, getUserOrder);
 orderRouter.get('/all', auth, admin, getAllOrders);
 orderRouter.get('/:id', auth, getOrder);

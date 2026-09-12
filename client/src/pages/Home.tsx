@@ -1,6 +1,5 @@
 import AppPromoBanner from "../components/Home/AppPromoBanner";
 import Features from "../components/Home/Features";
-import Footer from "../components/Home/Footer";
 import Hero from "../components/Home/Hero";
 import HomeCategories from "../components/Home/HomeCategories";
 import NewsLetter from "../components/Home/NewsLetter";

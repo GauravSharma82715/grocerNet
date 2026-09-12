@@ -15,7 +15,7 @@ export default function OrderOTP({ order }: { order: any }) {
         </div>
       </div>
       <div className="flex gap-2 mt-2">
-        {order.deliveryOtp.split("").map((digit: string, i: number) => (
+        {order.deliveryOtp.slice(0, 6).split("").map((digit: string, i: number) => (
           <div key={i} className="w-11 h-13 rounded-xl bg-white/15 flex-center text-2xl font-mono font-bold tracking-wider">
             {digit}
           </div>
