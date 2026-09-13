@@ -41,7 +41,7 @@ export const createOrder = async (req: Request, res: Response) => {
         const subtotal = orderItems.reduce((sum: number, item: any) =>
             sum + item.price * item.quantity, 0
         );
-        const deliveryFee = subtotal > 20 ? 0 : 1.99;
+        const deliveryFee = subtotal > 499 ? 0 : 49;
         const tax = Math.round(subtotal * 0.08 * 100) / 100;
         const total = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
 
@@ -56,6 +56,9 @@ export const createOrder = async (req: Request, res: Response) => {
                 tax: tax,
                 total: total,
                 isPaid: false,
+                status: "Placed",
+                deliveryOtp: "",
+                deliveryPartnerId: null,
                 statusHistory: [{ status: "Placed", note: "Order placed successfully", timestamp: new Date().toISOString() }]
             }
         });
@@ -287,22 +290,32 @@ export const getOrder = async (req: Request, res: Response) => {
 //update the order status
 export const updateOrderStatus = async (req: Request, res: Response) => {
     const { status, note } = req.body;
-    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } })
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
     if (!order) {
         return res.status(404).json({ message: "Order not found" });
     }
+
+    // Admin can only transition initial statuses (Placed, Confirmed, Packed, Cancelled)
+    // Once accepted by a delivery partner, the order cannot be modified or cancelled
+    if (order.deliveryPartnerId && ["Assigned", "Out for Delivery", "Delivered"].includes(order.status)) {
+        return res.status(400).json({ message: "Order has been accepted by a delivery partner and cannot be modified or cancelled." });
+    }
+
+    const adminAllowedStatuses = ["Placed", "Confirmed", "Packed", "Cancelled"];
+    if (!adminAllowedStatuses.includes(status)) {
+        return res.status(400).json({ message: `Admin can only update status to: ${adminAllowedStatuses.join(", ")}` });
+    }
+
     const history = (Array.isArray(order.statusHistory) ? order.statusHistory : []) as any[];
-    history.push({ status, note: note || `Order ${status.toLowerCase()}`, timeStamp: new Date() })
+    history.push({ status, note: note || `Order marked as ${status.toLowerCase()} by admin`, timeStamp: new Date() });
 
     const updatedOrder = await prisma.order.update({
         where: { id: req.params.id as string },
         data: { status, statusHistory: history }
-    })
+    });
 
-    res.json({ order: updatedOrder })
-
-
-}
+    res.json({ order: updatedOrder });
+};
 
 export const getAllOrders = async (req: Request, res: Response) => {
     const { status } = req.query;

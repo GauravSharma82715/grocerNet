@@ -33,6 +33,11 @@ export type Address = Prisma.AddressModel
  */
 export type Product = Prisma.ProductModel
 /**
+ * Model Review
+ * 
+ */
+export type Review = Prisma.ReviewModel
+/**
  * Model Order
  * 
  */

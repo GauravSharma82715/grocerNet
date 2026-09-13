@@ -18,11 +18,16 @@ const getAdminStatus = (email: string | null | undefined): boolean => {
     return adminEmails.includes(email.toLowerCase());
 }
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 //POST /API/AUTH/REGISTER
 export const register = async (req: Request, res: Response) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, message: "Invalid email format" });
     }
     const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
     if (existingUser) {
@@ -54,13 +59,16 @@ export const login = async (req: Request, res: Response) => {
     if (!email || !password) {
         return res.status(400).json({ success: false, message: "Please provide email and password" });
     }
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, message: "Invalid email format" });
+    }
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() }, include: { addresses: true } })
     if (!user) {
-        return res.status(400).json({ success: false, message: "Invalid email or password" });
+        return res.status(400).json({ success: false, message: "User does not exist" });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-        return res.status(400).json({ success: false, message: "Invalid email or password" });
+        return res.status(400).json({ success: false, message: "Incorrect password" });
     }
 
     const token = generateToken(user.id);

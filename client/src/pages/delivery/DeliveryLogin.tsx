@@ -24,6 +24,8 @@ export default function DeliveryLogin() {
         setLoading(true);
         try {
             const { data } = await api.post("/api/delivery/login", { email, password });
+            sessionStorage.setItem("delivery_token", data.token);
+            sessionStorage.setItem("delivery_partner", JSON.stringify(data.partner));
             localStorage.setItem("delivery_token", data.token);
             localStorage.setItem("delivery_partner", JSON.stringify(data.partner));
             toast.success(`Welcome back, ${data.partner.name}!`);

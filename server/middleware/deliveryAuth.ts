@@ -15,9 +15,9 @@ const deliveryAuth = async (req: Request, res: Response, next: NextFunction) => 
         }
         const partner = await prisma.deliveryPartner.findUnique({
             where: { id: decoded.id }
-        })
-        if (!partner || !partner.isActive) {
-            return res.status(403).json({ message: "Account is deactivated" })
+        });
+        if (!partner) {
+            return res.status(401).json({ message: "Delivery partner account not found" });
         }
         req.partner = partner;
         next();

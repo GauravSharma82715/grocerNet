@@ -116,6 +116,12 @@ export const assignDeliveryPartner = async (req: Request, res: Response) => {
     const partner = await prisma.deliveryPartner.findUnique({
         where: { id: partnerId }
     })
+    if (!partner) {
+        return res.status(404).json({ message: "Delivery partner not found" });
+    }
+    if (!partner.isActive) {
+        return res.status(400).json({ message: "Cannot assign: Delivery partner is currently offline" });
+    }
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     let status = order!.status;
     const history: any[] = Array.isArray(order!.statusHistory) ? order!.statusHistory : [];

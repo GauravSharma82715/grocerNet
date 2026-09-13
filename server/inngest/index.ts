@@ -229,5 +229,5 @@ const autoAssignRider = inngest.createFunction({
     return result
 })
 
-// Create an empty array where we'll export future Inngest functions
-export const functions = [checkLowStock, sendMonthlyOffers, autoAssignRider];
+// Export Inngest functions (autoAssignRider removed to follow manual packing and acceptance workflow)
+export const functions = [checkLowStock, sendMonthlyOffers];

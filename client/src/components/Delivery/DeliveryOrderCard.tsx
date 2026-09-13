@@ -4,13 +4,21 @@ import { statusColors } from '../../assets/assets';
 
 interface DeliveryOrderCardProps {
     order: Order;
-    tab: "active" | "completed";
+    tab: "available" | "active" | "completed";
+    handleAcceptDelivery?: (orderId: string) => void;
+    handleDeclineOrder?: (orderId: string) => void;
     handleUpdateStatus: (orderId: string, status: string) => void;
     setOtpModal: (orderId: string) => void;
-    setCancelModal: (orderId: string) => void;
 }
 
-export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setOtpModal, setCancelModal }: DeliveryOrderCardProps) {
+export default function DeliveryOrderCard({
+    order,
+    tab,
+    handleAcceptDelivery,
+    handleDeclineOrder,
+    handleUpdateStatus,
+    setOtpModal
+}: DeliveryOrderCardProps) {
 
     const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
@@ -35,11 +43,11 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
     const totalAmount = calculatedTotal.toFixed(2);
 
     return (
-        <div key={order.id} className="bg-white rounded-2xl border border-app-border overflow-hidden">
+        <div key={order.id} className="bg-white rounded-2xl border border-app-border overflow-hidden shadow-xs hover:shadow-md transition-shadow">
             {/* Header */}
             <div className="px-5 py-4 border-b border-app-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-zinc-500">#{order.id.slice(-6).toUpperCase()}</span>
+                    <span className="text-sm font-mono font-semibold text-zinc-600">#{order.id.slice(-6).toUpperCase()}</span>
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusColors[order.status] || "bg-zinc-100 text-zinc-600"}`}>
                         {order.status}
                     </span>
@@ -70,28 +78,57 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
                 <p className="text-xs text-zinc-500">{items.length} item{items.length !== 1 ? "s" : ""} • {(order.paymentMethod || "card").toUpperCase()}</p>
             </div>
 
-            {/* Actions */}
+            {/* Available Actions (Accept or Decline) */}
+            {tab === "available" && (
+                <div className="px-5 py-3 border-t border-app-border flex items-center justify-between gap-3 bg-zinc-50/50">
+                    <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Packed & Ready for Pickup
+                    </span>
+                    <div className="flex items-center gap-2">
+                        {handleDeclineOrder && (
+                            <button
+                                onClick={() => handleDeclineOrder(order.id)}
+                                className="px-3.5 py-2 text-xs font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                                <XCircleIcon className="w-3.5 h-3.5" /> Decline
+                            </button>
+                        )}
+                        {handleAcceptDelivery && (
+                            <button
+                                onClick={() => handleAcceptDelivery(order.id)}
+                                className="px-4 py-2 text-xs font-semibold text-white bg-app-green hover:bg-app-green-light active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                                <CheckCircleIcon className="w-3.5 h-3.5" /> Accept Order
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Active Actions */}
             {tab === "active" && (
-                <div className="px-5 py-3 border-t border-app-border flex flex-wrap gap-2">
+                <div className="px-5 py-3 border-t border-app-border flex flex-wrap items-center gap-2">
                     {(order.status === "Assigned" || order.status === "Packed") && (
-                        <button onClick={() => handleUpdateStatus(order.id, order.status === "Assigned" ? "Packed" : "Out for Delivery")} className="px-4 py-2 text-sm font-medium bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-1.5">
-                            <TruckIcon className="w-3.5 h-3.5" />
-                            {order.status === "Assigned" ? "Mark Packed" : "Out for Delivery"}
+                        <button
+                            onClick={() => handleUpdateStatus(order.id, "Out for Delivery")}
+                            className="px-4 py-2 text-xs sm:text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                            <TruckIcon className="w-3.5 h-3.5" /> Out for Delivery
                         </button>
                     )}
                     {order.status === "Out for Delivery" && (
-                        <button onClick={() => setOtpModal(order.id)} className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors flex items-center gap-1.5">
-                            <CheckCircleIcon className="w-3.5 h-3.5" /> Mark Delivered
-                        </button>
-                    )}
-                    {order.status !== "Delivered" && order.status !== "Cancelled" && (
-                        <button onClick={() => setCancelModal(order.id)} className="px-4 py-2 text-sm font-medium bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-1.5">
-                            <XCircleIcon className="w-3.5 h-3.5" /> Cancel
+                        <button
+                            onClick={() => setOtpModal(order.id)}
+                            className="px-4 py-2 text-xs sm:text-sm font-semibold bg-app-green text-white hover:bg-app-green-light rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                            <CheckCircleIcon className="w-3.5 h-3.5" /> Mark Delivered (Enter OTP)
                         </button>
                     )}
                 </div>
             )}
 
+            {/* Completed Footer */}
             {tab === "completed" && (
                 <div className="px-5 py-3 border-t border-app-border">
                     <p className="text-xs text-zinc-500 flex items-center gap-1">
@@ -101,5 +138,5 @@ export default function DeliveryOrderCard({ order, tab, handleUpdateStatus, setO
                 </div>
             )}
         </div>
-    )
+    );
 }

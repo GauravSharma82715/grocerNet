@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SearchIcon, TruckIcon, XIcon } from "lucide-react";
+import { SearchIcon, XIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import type { DeliveryPartner } from "../../types";
 import Loading from "../../components/Loading";
@@ -16,14 +16,17 @@ export default function AdminOrders() {
     const [activeTab, setActiveTab] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
             const { data } = await api.get("/api/orders/all");
             setOrders(Array.isArray(data.orders) ? data.orders : Array.isArray(data) ? data : []);
         } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to load orders");
+            if (!isSilent) {
+                toast.error(error.response?.data?.message || "Failed to load orders");
+            }
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
@@ -38,8 +41,16 @@ export default function AdminOrders() {
     };
 
     useEffect(() => {
-        fetchOrders();
+        fetchOrders(false);
         fetchPartners();
+    }, []);
+
+    // Background auto-refresh every 5 seconds so partner acceptances and status updates auto-reflect live
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchOrders(true);
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleStatusChange = async (id: string, newStatus: string) => {
@@ -59,14 +70,14 @@ export default function AdminOrders() {
             toast.success("Delivery partner assigned");
             setAssignModal(null);
             setSelectedPartner("");
-            fetchOrders();
+            fetchOrders(true);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to assign delivery partner");
         }
     };
 
-    const statusOptions = ["Placed", "Confirmed", "Assigned", "Packed", "Out for Delivery", "Delivered", "Cancelled"];
-    const tabs = ["all", ...statusOptions];
+    const adminStatusOptions = ["Placed", "Confirmed", "Packed", "Cancelled"];
+    const allStatusTabs = ["all", "Placed", "Confirmed", "Packed", "Assigned", "Out for Delivery", "Delivered", "Cancelled"];
 
     const statusColors: Record<string, string> = {
         Placed: "bg-blue-100 text-blue-800",
@@ -114,7 +125,7 @@ export default function AdminOrders() {
 
                 {/* Filter Tabs */}
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    {tabs.map((tab) => (
+                    {allStatusTabs.map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -169,6 +180,11 @@ export default function AdminOrders() {
                                           })
                                         : "—";
 
+                                    const isPartnerManaged = Boolean(
+                                        order.deliveryPartner ||
+                                        ["Assigned", "Out for Delivery", "Delivered"].includes(order.status)
+                                    );
+
                                     return (
                                         <tr key={order.id} className="hover:bg-zinc-50/50 transition-colors">
                                             <td className="px-6 py-4">
@@ -193,40 +209,51 @@ export default function AdminOrders() {
                                             <td className="px-6 py-4">
                                                 {order.deliveryPartner ? (
                                                     <div className="flex items-center gap-2">
-                                                        <div className="size-7 rounded-full bg-app-green text-white flex-center text-xs font-semibold">
+                                                        <div className="size-7 rounded-full bg-app-green text-white flex-center text-xs font-semibold shrink-0">
                                                             {order.deliveryPartner.name?.charAt(0)?.toUpperCase() || "D"}
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs font-medium text-zinc-900">{order.deliveryPartner.name}</p>
+                                                            <p className="text-xs font-semibold text-zinc-900">{order.deliveryPartner.name}</p>
                                                             <p className="text-[10px] text-zinc-500">{order.deliveryPartner.phone}</p>
                                                         </div>
                                                     </div>
+                                                ) : order.status === "Packed" ? (
+                                                    <span className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 rounded-full inline-flex items-center gap-1.5">
+                                                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                        Waiting for partner
+                                                    </span>
                                                 ) : (
-                                                    <button
-                                                        onClick={() => {
-                                                            setAssignModal(order.id);
-                                                            setSelectedPartner("");
-                                                        }}
-                                                        className="px-3 py-1.5 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5 cursor-pointer"
-                                                    >
-                                                        <TruckIcon className="size-3.5" /> Assign
-                                                    </button>
+                                                    <span className="text-xs text-zinc-400">Unassigned</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <select
-                                                    value={order.status}
-                                                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-r-8 border-transparent outline-none cursor-pointer leading-tight ${
-                                                        statusColors[order.status] || "bg-zinc-100 text-zinc-800"
-                                                    }`}
-                                                >
-                                                    {statusOptions.map((s) => (
-                                                        <option key={s} value={s}>
-                                                            {s}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                {isPartnerManaged && order.status !== "Cancelled" ? (
+                                                    <span
+                                                        title="Delivery status is updated by the assigned delivery partner"
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 ${
+                                                            statusColors[order.status] || "bg-zinc-100 text-zinc-800"
+                                                        }`}
+                                                    >
+                                                        {order.status === "Assigned" && <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+                                                        {order.status === "Out for Delivery" && <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />}
+                                                        {order.status === "Delivered" && <span className="size-1.5 rounded-full bg-green-500" />}
+                                                        {order.status}
+                                                    </span>
+                                                ) : (
+                                                    <select
+                                                        value={order.status}
+                                                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-r-8 border-transparent outline-none cursor-pointer leading-tight ${
+                                                            statusColors[order.status] || "bg-zinc-100 text-zinc-800"
+                                                        }`}
+                                                    >
+                                                        {adminStatusOptions.map((s) => (
+                                                            <option key={s} value={s}>
+                                                                {s}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </td>
                                         </tr>
                                     );

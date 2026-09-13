@@ -19,36 +19,118 @@ export const loginPartner = async (req: Request, res: Response) => {
         }
     })
     if (!partner) {
-        return res.status(401).json({ message: "Invalid email or password" });
-    }
-    if (!partner.isActive) {
-        return res.status(403).json({ message: "your account has been deactivated" });
+        return res.status(401).json({ message: "Delivery partner account does not exist" });
     }
     const isMatch = await bcrypt.compare(password, partner.password);
     if (!isMatch) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({ message: "Incorrect password" });
     }
-    const token = generateToken(partner.id)
-    const { password: _, ...partnerData } = partner;
-    res.json({ partner: partnerData, token })
-
+    // Automatically set online on login
+    const updatedPartner = await prisma.deliveryPartner.update({
+        where: { id: partner.id },
+        data: { isActive: true }
+    });
+    const token = generateToken(updatedPartner.id);
+    const { password: _, ...partnerData } = updatedPartner;
+    res.json({ partner: partnerData, token });
 }
 
-//GET assigned deliveries
+// Logout delivery partner and mark offline
+export const logoutPartner = async (req: Request, res: Response) => {
+    if (req.partner?.id) {
+        await prisma.deliveryPartner.update({
+            where: { id: req.partner.id },
+            data: { isActive: false }
+        });
+    }
+    res.json({ success: true, message: "Logged out and marked offline" });
+};
+
+// Toggle or update online/offline status
+export const toggleOnlineStatus = async (req: Request, res: Response) => {
+    const { isOnline } = req.body;
+    const partnerId = req.partner!.id;
+    const current = await prisma.deliveryPartner.findUnique({
+        where: { id: partnerId }
+    });
+    if (!current) {
+        return res.status(404).json({ message: "Delivery partner not found" });
+    }
+    const newStatus = typeof isOnline === "boolean" ? isOnline : !current.isActive;
+    const updated = await prisma.deliveryPartner.update({
+        where: { id: partnerId },
+        data: { isActive: newStatus }
+    });
+    const { password: _, ...partnerData } = updated;
+    res.json({ partner: partnerData, isOnline: newStatus, message: `Status updated to ${newStatus ? "Online" : "Offline"}` });
+};
+
+// Get current delivery partner profile
+export const getPartnerProfile = async (req: Request, res: Response) => {
+    const partner = await prisma.deliveryPartner.findUnique({
+        where: { id: req.partner!.id }
+    });
+    if (!partner) {
+        return res.status(404).json({ message: "Delivery partner not found" });
+    }
+    const { password: _, ...partnerData } = partner;
+    res.json({ partner: partnerData });
+};
+
+//GET assigned deliveries or available packed deliveries
 export const getMyDeliveries = async (req: Request, res: Response) => {
     const { status } = req.query;
-    const where: any = { deliveryPartnerId: req.partner!.id }
-    if (status === "active") {
-        where.status = { in: ["Assigned", "Packed", "Out for Delivery", "Out for delivery"] }
+    const partnerId = req.partner?.id;
+
+    if (!partnerId) {
+        return res.status(401).json({ message: "Unauthorized delivery partner" });
     }
-    else if (status === "completed") {
-        where.status = { in: ["Delivered", "Cancelled"] }
+
+    let where: any = { deliveryPartnerId: partnerId };
+    if (status === "available") {
+        where = {
+            deliveryPartnerId: null,
+            status: "Packed",
+            NOT: [{ paymentMethod: "card", isPaid: false }]
+        };
+    } else if (status === "active") {
+        where = {
+            deliveryPartnerId: partnerId,
+            status: { in: ["Assigned", "Out for Delivery", "Out for delivery"] }
+        };
+    } else if (status === "completed") {
+        where = {
+            deliveryPartnerId: partnerId,
+            status: { in: ["Delivered", "Cancelled"] }
+        };
     }
-    const orders = await prisma.order.findMany({
-        where,
-        include: { user: { select: { name: true, email: true, phone: true } } },
-        orderBy: { createdAt: "desc" }
-    })
+
+    const [orders, availableCount, activeCount, completedCount] = await Promise.all([
+        prisma.order.findMany({
+            where,
+            include: { user: { select: { name: true, email: true, phone: true } } },
+            orderBy: { createdAt: "desc" }
+        }),
+        prisma.order.count({
+            where: {
+                deliveryPartnerId: null,
+                status: "Packed",
+                NOT: [{ paymentMethod: "card", isPaid: false }]
+            }
+        }),
+        prisma.order.count({
+            where: {
+                deliveryPartnerId: partnerId,
+                status: { in: ["Assigned", "Out for Delivery", "Out for delivery"] }
+            }
+        }),
+        prisma.order.count({
+            where: {
+                deliveryPartnerId: partnerId,
+                status: { in: ["Delivered", "Cancelled"] }
+            }
+        })
+    ]);
 
     const productIds: string[] = [];
     orders.forEach((order) => {
@@ -83,9 +165,65 @@ export const getMyDeliveries = async (req: Request, res: Response) => {
         };
     });
 
-    res.json({ orders: enrichedOrders })
+    res.json({
+        orders: enrichedOrders,
+        counts: {
+            available: availableCount,
+            active: activeCount,
+            completed: completedCount
+        }
+    });
+};
 
-}
+// Accept delivery of a packed order
+export const acceptDelivery = async (req: Request, res: Response) => {
+    const partnerId = req.partner!.id;
+    const orderId = req.params.id as string;
+
+    const partner = await prisma.deliveryPartner.findUnique({
+        where: { id: partnerId }
+    });
+
+    if (!partner || !partner.isActive) {
+        return res.status(400).json({ message: "You must be online to accept orders" });
+    }
+
+    const order = await prisma.order.findUnique({
+        where: { id: orderId }
+    });
+
+    if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (order.deliveryPartnerId) {
+        return res.status(400).json({ message: "This order has already been accepted by another partner" });
+    }
+
+    if (order.status !== "Packed") {
+        return res.status(400).json({ message: "Order is not ready for pickup yet (must be Packed first by store)" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const history = (Array.isArray(order.statusHistory) ? order.statusHistory : []) as any[];
+    history.push({
+        status: "Assigned",
+        note: `Accepted by ${partner.name}`,
+        timestamp: new Date()
+    });
+
+    const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+            deliveryPartnerId: partner.id,
+            deliveryOtp: otp,
+            status: "Assigned",
+            statusHistory: history
+        }
+    });
+
+    res.json({ order: updatedOrder, message: "Order accepted successfully" });
+};
 
 //get single delivery detail
 
@@ -123,28 +261,9 @@ export const completeDelivery = async (req: Request, res: Response) => {
 }
 
 //Cancel delivery
-export const cancelDelivery = async (req: Request, res: Response) => {
-    const { reason } = req.body;
-    const order = await prisma.order.findFirst({
-        where: { id: req.params.id as string, deliveryPartnerId: req.partner!.id }
-    })
-    if (!order) {
-        return res.status(404).json({ message: "Delivery not found" });
-    }
-    if (order.status === "Delivered") {
-        return res.status(400).json({ message: "Cannot cancel a delivered order" });
-    }
-    const history = order.statusHistory as any[];
-    history.push({
-        status: "Cancelled", note: reason || "", timestamp: new Date()
-    })
-    const updatedOrder = await prisma.order.update({
-        where: { id: order.id },
-        data: { status: "Cancelled", statusHistory: history }
-    })
-
-    res.json({ order: updatedOrder, message: "Delivery cancelled" })
-}
+export const cancelDelivery = async (_req: Request, res: Response) => {
+    return res.status(400).json({ message: "Orders cannot be cancelled once accepted by a delivery partner" });
+};
 
 //update order status
 

@@ -54,40 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (email: string, password: string): Promise<boolean> => {
         setLoading(true);
         try {
-            // If backend is available, try it; otherwise simulate client-side login
-            try {
-                const response = await api.post("/api/auth/login", { email, password });
-                const { user: loggedInUser, token: authToken } = response.data;
-                localStorage.setItem("auth_token", authToken);
-                localStorage.setItem("auth_user", JSON.stringify(loggedInUser));
-                setToken(authToken);
-                setUser(loggedInUser);
-                toast.success("Logged in successfully!");
-                return true;
-            } catch (apiError) {
-                // Fallback: Create mock user directly from form inputs for frontend demo
-                const namePart = email.split("@")[0];
-                const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-                const mockUser: User = {
-                    id: "user_" + Date.now(),
-                    name: formattedName,
-                    email: email.toLowerCase(),
-                    phone: "+1 234 567 8900",
-                    avatar: "",
-                    addresses: [],
-                    isAdmin: email.toLowerCase().includes("admin"),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-                const mockToken = "mock_jwt_token_" + Date.now();
-
-                localStorage.setItem("auth_token", mockToken);
-                localStorage.setItem("auth_user", JSON.stringify(mockUser));
-                setToken(mockToken);
-                setUser(mockUser);
-                toast.success(`Welcome back, ${mockUser.name}!`);
-                return true;
-            }
+            const response = await api.post("/api/auth/login", { email, password });
+            const { user: loggedInUser, token: authToken } = response.data;
+            localStorage.setItem("auth_token", authToken);
+            localStorage.setItem("auth_user", JSON.stringify(loggedInUser));
+            setToken(authToken);
+            setUser(loggedInUser);
+            toast.success("Logged in successfully!");
+            return true;
+        } catch (apiError: any) {
+            toast.error(apiError?.response?.data?.message || "Invalid email or password");
+            return false;
         } finally {
             setLoading(false);
         }
@@ -101,41 +78,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ): Promise<boolean> => {
         setLoading(true);
         try {
-            try {
-                const response = await api.post("/api/auth/register", {
-                    name,
-                    email,
-                    password,
-                });
-                const { user: registeredUser, token: authToken } = response.data;
-                localStorage.setItem("auth_token", authToken);
-                localStorage.setItem("auth_user", JSON.stringify(registeredUser));
-                setToken(authToken);
-                setUser(registeredUser);
-                toast.success("Account created successfully!");
-                return true;
-            } catch (apiError) {
-                // Fallback: Create mock user directly from form inputs
-                const mockUser: User = {
-                    id: "user_" + Date.now(),
-                    name: name.trim() || email.split("@")[0],
-                    email: email.toLowerCase(),
-                    phone: "+1 234 567 8900",
-                    avatar: "",
-                    addresses: [],
-                    isAdmin: email.toLowerCase().includes("admin"),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-                const mockToken = "mock_jwt_token_" + Date.now();
-
-                localStorage.setItem("auth_token", mockToken);
-                localStorage.setItem("auth_user", JSON.stringify(mockUser));
-                setToken(mockToken);
-                setUser(mockUser);
-                toast.success("Account created successfully!");
-                return true;
-            }
+            const response = await api.post("/api/auth/register", {
+                name,
+                email,
+                password,
+            });
+            const { user: registeredUser, token: authToken } = response.data;
+            localStorage.setItem("auth_token", authToken);
+            localStorage.setItem("auth_user", JSON.stringify(registeredUser));
+            setToken(authToken);
+            setUser(registeredUser);
+            toast.success("Account created successfully!");
+            return true;
+        } catch (apiError: any) {
+            toast.error(apiError?.response?.data?.message || "Registration failed");
+            return false;
         } finally {
             setLoading(false);
         }
