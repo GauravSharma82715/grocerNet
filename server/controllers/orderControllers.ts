@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
-import { inngest } from "../inngest/index.js";
+import { checkAndAlertLowStock } from "../utils/stockAlert.js";
 import crypto from "crypto";
 import { getRazorpayInstance } from "../config/razorpay.js";
 
@@ -96,14 +96,10 @@ export const createOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // send stock update event for each product in the order
+        // Check and alert if stock falls below threshold
         for (const item of orderItems) {
-            await inngest.send({
-                name: "inventoiry.stock.updated",
-                data: { productId: item.product }
-            });
+            checkAndAlertLowStock(item.product);
         }
-        await inngest.send({ name: "order/placed", data: { orderId: order.id } });
 
         return res.json({ order });
     } catch (error: any) {
@@ -174,14 +170,9 @@ export const verifyRazorpayPayment = async (req: Request, res: Response) => {
                     data: { stock: { decrement: item.quantity || 1 } }
                 });
 
-                await inngest.send({
-                    name: "inventoiry.stock.updated",
-                    data: { productId: item.product }
-                });
+                checkAndAlertLowStock(item.product);
             }
         }
-
-        await inngest.send({ name: "order/placed", data: { orderId: updatedOrder.id } });
 
         return res.json({ success: true, message: "Payment verified successfully", order: updatedOrder });
     } catch (error: any) {
